@@ -1,0 +1,129 @@
+/* ═══════════════════════════════════════════════════════════════
+   Button Component Styles — MedEasy Design System
+   Variants: primary | secondary | destructive
+   Sizes:    sm | md | lg
+   ═══════════════════════════════════════════════════════════════ */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: none;
+  border-radius: 10px;
+  font-family: var(--font-family);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  outline: none;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--accent-emerald);
+  outline-offset: 2px;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Size Variants ───────────────────────────────────────────── */
+
+.sm {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  border-radius: 8px;
+}
+
+.md {
+  padding: 0.6rem 1.25rem;
+  font-size: 0.9rem;
+}
+
+.lg {
+  padding: 0.75rem 1.75rem;
+  font-size: 1rem;
+  border-radius: 12px;
+}
+
+/* ── Primary Variant ─────────────────────────────────────────── */
+
+.primary {
+  background: linear-gradient(135deg, var(--accent-emerald), var(--accent-teal));
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+}
+
+.primary:hover:not(:disabled) {
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.45);
+  transform: translateY(-1px);
+}
+
+.primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 6px rgba(16, 185, 129, 0.25);
+}
+
+/* ── Secondary Variant ───────────────────────────────────────── */
+
+.secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(8px);
+}
+
+.secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--border-glow);
+  transform: translateY(-1px);
+}
+
+.secondary:active:not(:disabled) {
+  transform: translateY(0);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Destructive Variant ─────────────────────────────────────── */
+
+.destructive {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.25);
+}
+
+.destructive:hover:not(:disabled) {
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+  transform: translateY(-1px);
+}
+
+.destructive:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 6px rgba(239, 68, 68, 0.2);
+}
+
+/* ── Full Width Modifier ─────────────────────────────────────── */
+
+.fullWidth {
+  width: 100%;
+}
+
+/* ── Loading State ───────────────────────────────────────────── */
+
+.loading {
+  color: transparent;
+}
+
+.spinnerWrapper {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

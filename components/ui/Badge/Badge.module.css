@@ -1,0 +1,132 @@
+/* ═══════════════════════════════════════════════════════════════
+   Badge Component Styles — MedEasy Design System
+   Status Variants: pending | filled | cannotFill | processing
+   Generic Variants: info | success | warning | error | neutral
+   Sizes: sm | md
+   ═══════════════════════════════════════════════════════════════ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-family);
+  font-weight: 600;
+  border-radius: 9999px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+/* ── Size Variants ───────────────────────────────────────────── */
+
+.sm {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.72rem;
+}
+
+.md {
+  padding: 0.3rem 0.8rem;
+  font-size: 0.82rem;
+}
+
+/* ── Prescription Status: Pending ────────────────────────────── */
+
+.pending {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+/* ── Prescription Status: Filled ─────────────────────────────── */
+
+.filled {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+/* ── Prescription Status: Cannot Fill ────────────────────────── */
+
+.cannotFill {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+/* ── Prescription Status: Processing ─────────────────────────── */
+
+.processing {
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+/* ── Generic: Info ───────────────────────────────────────────── */
+
+.info {
+  background: rgba(6, 182, 212, 0.12);
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.25);
+}
+
+/* ── Generic: Success ────────────────────────────────────────── */
+
+.success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+/* ── Generic: Warning ────────────────────────────────────────── */
+
+.warning {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+/* ── Generic: Error ──────────────────────────────────────────── */
+
+.errorBadge {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+/* ── Generic: Neutral ────────────────────────────────────────── */
+
+.neutral {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+/* ── Status Dot ──────────────────────────────────────────────── */
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex-shrink: 0;
+}
+
+/* ── Processing Pulse Animation ──────────────────────────────── */
+
+.pulsingDot {
+  animation: badgePulse 2s infinite;
+}
+
+@keyframes badgePulse {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
+}
