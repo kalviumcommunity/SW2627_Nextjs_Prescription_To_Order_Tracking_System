@@ -1,0 +1,35 @@
+# dependencies
+/node_modules/
+/.pnp
+.pnp.js
+
+# testing
+/coverage/
+
+# Next.js and build output
+/.next/
+/out/
+
+# production
+/build/
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# environment files (keep the documented example)
+.env
+.env.*
+!.env.example
+
+# generated and private files
+*.pem
+.DS_Store
+
+# Vercel
+.vercel/
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
