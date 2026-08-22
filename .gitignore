@@ -1,31 +1,34 @@
 # dependencies
-/node_modules
+/node_modules/
 /.pnp
 .pnp.js
 
 # testing
-/coverage
+/coverage/
 
-# next.js
+# Next.js and build output
 /.next/
 /out/
 
 # production
-/build
+/build/
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
-.env*.local
-.env.development.local
-.env.test.local
-.env.production.local
+# environment files (keep the documented example)
+.env
+.env.*
+!.env.example
 
-# vercel
-.vercel
+# generated and private files
+*.pem
+.DS_Store
+
+# Vercel
+.vercel/
 
 # typescript
 *.tsbuildinfo
