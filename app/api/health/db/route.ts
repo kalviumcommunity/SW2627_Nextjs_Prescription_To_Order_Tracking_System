@@ -9,7 +9,7 @@ export async function GET() {
     await prisma.$queryRaw`SELECT 1`;
     
     return NextResponse.json(
-      { status: 'healthy', db: 'connected' },
+      { status: 'ok', database: 'connected' },
       { status: 200 }
     );
   } catch (error) {
