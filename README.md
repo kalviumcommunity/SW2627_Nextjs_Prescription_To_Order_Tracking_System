@@ -15,10 +15,39 @@ MedEasy is a role-based prescription-to-order tracking system designed to stream
 
 ## Local Setup
 1. Clone the repository.
-2. Ensure you have Node.js 20+ installed.
-3. Copy `.env.example` to `.env.local` and populate it with your local development variables.
-4. Run `npm install` to install dependencies.
-5. (Database setup instructions to be added in future PRs).
+2. Ensure you have **Node.js 20+** and **Docker Desktop** installed.
+3. Copy `.env.example` to `.env` and fill in your local values:
+   ```bash
+   cp .env.example .env
+   ```
+4. Start the PostgreSQL database container:
+   ```bash
+   docker compose up -d
+   ```
+5. Install dependencies:
+   ```bash
+   npm install
+   ```
+6. Push the Prisma schema to the database:
+   ```bash
+   npx prisma@6 db push
+   ```
+7. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+## Database Setup (Local)
+We use Docker Compose to provide a consistent PostgreSQL environment for local development.
+
+**Commands:**
+- `docker compose up -d`: Start the database in the background.
+- `docker compose ps`: Check the status of the database container.
+- `docker compose logs`: View database logs.
+- `docker compose down`: Stop and remove the database container (data is preserved in a volume).
+
+*To stop the database without removing the container, you can run `docker stop medeasy_db` (or stop it from Docker Desktop).*
+*To restart it, run `docker start medeasy_db`.*
 
 ## Development Commands
 - `npm run dev`: Start the local development server.
