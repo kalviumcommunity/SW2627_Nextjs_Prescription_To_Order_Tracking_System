@@ -28,9 +28,9 @@ MedEasy is a role-based prescription-to-order tracking system designed to stream
    ```bash
    npm install
    ```
-6. Push the Prisma schema to the database:
+6. Run database migrations:
    ```bash
-   npx prisma@6 db push
+   npx prisma migrate dev
    ```
 7. Start the development server:
    ```bash
@@ -43,8 +43,10 @@ We use Docker Compose to provide a consistent PostgreSQL environment for local d
 **Commands:**
 - `docker compose up -d`: Start the database in the background.
 - `docker compose ps`: Check the status of the database container.
-- `docker compose logs`: View database logs.
+- `docker compose logs postgres`: View database logs.
 - `docker compose down`: Stop and remove the database container (data is preserved in a volume).
+- `npx prisma migrate dev`: Apply all pending migrations.
+- `npx prisma studio`: Open Prisma visual data browser.
 
 *To stop the database without removing the container, you can run `docker stop medeasy_db` (or stop it from Docker Desktop).*
 *To restart it, run `docker start medeasy_db`.*
