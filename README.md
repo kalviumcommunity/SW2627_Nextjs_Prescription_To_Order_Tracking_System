@@ -30,23 +30,68 @@ MedEasy is a role-based prescription-to-order tracking system designed to stream
    ```
 6. Run database migrations:
    ```bash
-   npx prisma migrate dev
+   npm run db:migrate
    ```
-7. Start the development server:
+7. Seed the database with initial test data:
+   ```bash
+   npm run db:seed
+   ```
+8. Start the development server:
    ```bash
    npm run dev
    ```
 
-## Database Setup (Local)
+## Database Development Workflow
+
+Standardized npm scripts are available for managing the local development database:
+
+| Command | Action | Description |
+|---|---|---|
+| `npm run db:migrate` | Apply migrations | Creates & applies schema migrations to your local database and regenerates the Prisma client. |
+| `npm run db:seed` | Seed database | Seeds the database with baseline test data, roles, users, and prescription scenarios. |
+| `npm run db:reset` | Reset database | **Destructive (Local Dev Only)** Drops all tables, re-applies migrations from scratch, and re-seeds data. |
+| `npm run db:studio` | Visual data browser | Launches Prisma Studio UI at `http://localhost:5555` to inspect and edit database records. |
+| `npm run db:generate` | Generate client | Generates the Prisma Client TypeScript types based on `schema.prisma`. |
+| `npm run db:validate` | Validate schema | Validates the syntax and relations within `schema.prisma`. |
+
+### Step-by-Step Developer Workflow
+
+1. **Start PostgreSQL Container**
+   ```bash
+   docker compose up -d
+   ```
+2. **Apply Migrations**
+   ```bash
+   npm run db:migrate
+   ```
+3. **Seed the Database**
+   ```bash
+   npm run db:seed
+   ```
+4. **Inspect Data in Prisma Studio**
+   ```bash
+   npm run db:studio
+   ```
+5. **Reset the Development Database (When Needed)**
+   > ⚠️ **CAUTION: LOCAL DEVELOPMENT ONLY**
+   > `npm run db:reset` completely destroys and recreates the local database schema. All local records will be deleted. Never use reset in production or staging environments.
+   ```bash
+   npm run db:reset
+   ```
+6. **Re-seed Data**
+   `npm run db:reset` automatically triggers seeding upon completing migration reset. You can also re-run seeding manually at any point:
+   ```bash
+   npm run db:seed
+   ```
+
+## Database Setup (Docker)
 We use Docker Compose to provide a consistent PostgreSQL environment for local development.
 
-**Commands:**
+**Docker Commands:**
 - `docker compose up -d`: Start the database in the background.
 - `docker compose ps`: Check the status of the database container.
-- `docker compose logs postgres`: View database logs.
+- `docker compose logs`: View database logs.
 - `docker compose down`: Stop and remove the database container (data is preserved in a volume).
-- `npx prisma migrate dev`: Apply all pending migrations.
-- `npx prisma studio`: Open Prisma visual data browser.
 
 *To stop the database without removing the container, you can run `docker stop medeasy_db` (or stop it from Docker Desktop).*
 *To restart it, run `docker start medeasy_db`.*
