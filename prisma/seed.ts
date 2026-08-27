@@ -1,4 +1,5 @@
 import { PrismaClient, UserRole, PrescriptionStatus } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -34,7 +35,7 @@ async function main() {
   const adminUser = await prisma.user.create({
     data: {
       email: "admin@medeasy.demo",
-      password: "DemoAdminPassword123!",
+      password: bcrypt.hashSync("DemoAdminPassword123!", 10),
       role: UserRole.ADMIN,
     },
   });
@@ -47,7 +48,7 @@ async function main() {
   const doctor1User = await prisma.user.create({
     data: {
       email: "dr.sarah@medeasy.demo",
-      password: "DemoDoctorPassword123!",
+      password: bcrypt.hashSync("DemoDoctorPassword123!", 10),
       role: UserRole.DOCTOR,
       doctorProfile: {
         create: {
@@ -63,7 +64,7 @@ async function main() {
   const doctor2User = await prisma.user.create({
     data: {
       email: "dr.john@medeasy.demo",
-      password: "DemoDoctorPassword123!",
+      password: bcrypt.hashSync("DemoDoctorPassword123!", 10),
       role: UserRole.DOCTOR,
       doctorProfile: {
         create: {
@@ -88,7 +89,7 @@ async function main() {
   const pharmacyUser = await prisma.user.create({
     data: {
       email: "pharmacy@medeasy.demo",
-      password: "DemoPharmacyPassword123!",
+      password: bcrypt.hashSync("DemoPharmacyPassword123!", 10),
       role: UserRole.PHARMACY,
       pharmacyProfile: {
         create: {
@@ -152,7 +153,7 @@ async function main() {
     const user = await prisma.user.create({
       data: {
         email: p.email,
-        password: "DemoPatientPassword123!",
+        password: bcrypt.hashSync("DemoPatientPassword123!", 10),
         role: UserRole.PATIENT,
         patientProfile: {
           create: {
