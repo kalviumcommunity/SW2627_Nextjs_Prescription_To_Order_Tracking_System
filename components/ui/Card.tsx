@@ -1,6 +1,6 @@
 import React, { HTMLAttributes } from 'react';
 
-export interface CardProps extends HTMLAttributes<HTMLDivElement> {}
+export type CardProps = HTMLAttributes<HTMLDivElement>;
 
 export const Card: React.FC<CardProps> = ({ className = '', children, ...props }) => {
   return (
@@ -13,7 +13,7 @@ export const Card: React.FC<CardProps> = ({ className = '', children, ...props }
   );
 };
 
-export interface CardHeaderProps extends HTMLAttributes<HTMLDivElement> {}
+export type CardHeaderProps = HTMLAttributes<HTMLDivElement>;
 
 export const CardHeader: React.FC<CardHeaderProps> = ({ className = '', children, ...props }) => {
   return (
@@ -23,7 +23,7 @@ export const CardHeader: React.FC<CardHeaderProps> = ({ className = '', children
   );
 };
 
-export interface CardTitleProps extends HTMLAttributes<HTMLHeadingElement> {}
+export type CardTitleProps = HTMLAttributes<HTMLHeadingElement>;
 
 export const CardTitle: React.FC<CardTitleProps> = ({ className = '', children, ...props }) => {
   return (
@@ -33,7 +33,7 @@ export const CardTitle: React.FC<CardTitleProps> = ({ className = '', children, 
   );
 };
 
-export interface CardContentProps extends HTMLAttributes<HTMLDivElement> {}
+export type CardContentProps = HTMLAttributes<HTMLDivElement>;
 
 export const CardContent: React.FC<CardContentProps> = ({ className = '', children, ...props }) => {
   return (
@@ -43,7 +43,7 @@ export const CardContent: React.FC<CardContentProps> = ({ className = '', childr
   );
 };
 
-export interface CardFooterProps extends HTMLAttributes<HTMLDivElement> {}
+export type CardFooterProps = HTMLAttributes<HTMLDivElement>;
 
 export const CardFooter: React.FC<CardFooterProps> = ({ className = '', children, ...props }) => {
   return (
