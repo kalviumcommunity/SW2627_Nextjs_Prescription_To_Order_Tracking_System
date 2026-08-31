@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:auth": "tsx scripts/test-auth.ts",
+    "test:authz": "tsx scripts/test-authorization.ts",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate dev",
