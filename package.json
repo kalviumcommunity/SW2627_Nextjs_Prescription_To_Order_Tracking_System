@@ -10,6 +10,7 @@
     "test:auth": "tsx scripts/test-auth.ts",
     "test:authz": "tsx scripts/test-authorization.ts",
     "test:doctor": "tsx scripts/test-doctor-api.ts",
+    "test:doctor-integration": "tsx scripts/test-doctor-integration.ts",
     "test:nav": "tsx scripts/test-protected-navigation.ts",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
