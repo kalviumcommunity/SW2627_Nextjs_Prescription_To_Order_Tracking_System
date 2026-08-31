@@ -11,20 +11,75 @@ export function PasswordResetForm({ mode }: { mode: "request" | "reset" }) {
   const [token, setToken] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
-    if (mode === "request" && !/^\S+@\S+\.\S+$/.test(email)) {
-      setError("Enter a valid email address.");
-      return;
+
+    if (mode === "request") {
+      if (!/^\S+@\S+\.\S+$/.test(email)) {
+        setError("Enter a valid email address.");
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const res = await fetch("/api/auth/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim().toLowerCase() }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || "Failed to process password reset request.");
+        } else {
+          setSuccess(true);
+          setSuccessMessage(data.message || "If an account exists with this email, password reset instructions have been sent.");
+        }
+      } catch {
+        setError("Network error. Please check your connection and try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email)) {
+        setError("Enter a valid email address.");
+        return;
+      }
+      if (!token.trim()) {
+        setError("Enter the reset code from your email.");
+        return;
+      }
+      if (password.length < 8) {
+        setError("Password must be at least 8 characters.");
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const res = await fetch("/api/auth/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: email.trim().toLowerCase(),
+            token: token.trim(),
+            password,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || "Failed to reset password. Please verify your reset code.");
+        } else {
+          setSuccess(true);
+          setSuccessMessage(data.message || "Your password has been reset successfully. You can now sign in.");
+        }
+      } catch {
+        setError("Network error. Please check your connection and try again.");
+      } finally {
+        setIsLoading(false);
+      }
     }
-    if (mode === "reset" && (!token.trim() || password.length < 8)) {
-      setError(!token.trim() ? "Enter the reset code from your email." : "Password must be at least 8 characters.");
-      return;
-    }
-    setSuccess(true);
   };
 
   return (
@@ -33,15 +88,53 @@ export function PasswordResetForm({ mode }: { mode: "request" | "reset" }) {
         {success ? (
           <div role="status" className="space-y-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-xl text-emerald-700">✓</div>
-            <h3 className="font-display text-2xl text-ink">Request received</h3>
-            <p className="leading-7 text-slate-600">The password reset service is not connected in this release. Your details were not stored.</p>
+            <h3 className="font-display text-2xl text-ink">{mode === "request" ? "Request received" : "Password reset successful"}</h3>
+            <p className="leading-7 text-slate-600">{successMessage}</p>
             <Link href="/login" className="inline-block font-semibold text-ocean hover:text-ink">Return to sign in</Link>
           </div>
         ) : (
           <form onSubmit={submit} noValidate className="space-y-5">
-            {mode === "request" ? <Input id="reset-email" label="Email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} error={error} autoComplete="email" /> : <><Input id="reset-token" label="Reset code" value={token} onChange={(event) => setToken(event.target.value)} error={error} autoComplete="one-time-code" /><Input id="new-password" label="New password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" /></>}
-            {error && mode === "reset" && <p className="text-sm text-red-500">{error}</p>}
-            <Button type="submit" size="lg" className="w-full">{mode === "request" ? "Send reset instructions" : "Set new password"}</Button>
+            {mode === "request" ? (
+              <Input
+                id="reset-email"
+                label="Email address"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                error={error}
+                autoComplete="email"
+              />
+            ) : (
+              <>
+                <Input
+                  id="reset-email"
+                  label="Email address"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  autoComplete="email"
+                />
+                <Input
+                  id="reset-token"
+                  label="Reset code"
+                  value={token}
+                  onChange={(event) => setToken(event.target.value)}
+                  autoComplete="one-time-code"
+                />
+                <Input
+                  id="new-password"
+                  label="New password"
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  autoComplete="new-password"
+                />
+                {error && <p className="text-sm text-red-500">{error}</p>}
+              </>
+            )}
+            <Button type="submit" size="lg" className="w-full" isLoading={isLoading}>
+              {mode === "request" ? "Send reset instructions" : "Set new password"}
+            </Button>
           </form>
         )}
       </CardContent>

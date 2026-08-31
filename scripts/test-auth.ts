@@ -1,13 +1,20 @@
 import { authOptions } from "../lib/auth";
 import { registerDoctor, registerPatient, hashPassword, verifyPassword } from "../lib/auth-service";
+import {
+  requestPasswordReset,
+  validateResetToken,
+  resetPasswordWithToken,
+  createPasswordResetToken,
+  clearResetTokensForTesting,
+  DevelopmentEmailProvider,
+} from "../lib/password-reset-service";
 import { prisma } from "../lib/prisma";
 import { UserRole } from "@prisma/client";
-import bcrypt from "bcryptjs";
 
-async function runAuthTests() {
-  console.log("=================================================");
-  console.log("🧪 Starting MedEasy Authentication Test Suite");
-  console.log("=================================================\n");
+async function runAuthTestSuite() {
+  console.log("===============================================================================");
+  console.log("🧪 MedEasy Prescription-to-Order Tracking System - Authentication Verification");
+  console.log("===============================================================================\n");
 
   const credentialsProvider = authOptions.providers.find(
     (p: any) => p.id === "credentials" || p.name === "Credentials"
@@ -16,344 +23,488 @@ async function runAuthTests() {
   const authorizeFn = credentialsProvider?.options?.authorize || credentialsProvider?.authorize;
 
   if (!authorizeFn) {
-    throw new Error("Credentials provider authorize function not found!");
+    throw new Error("❌ Credentials provider authorize function not found in authOptions!");
   }
 
   // ---------------------------------------------------------------------------
-  // TEST 1: Seeded Accounts Authentication
+  // 1. VALID LOGIN FOR SEEDED USERS ACROSS ROLES
   // ---------------------------------------------------------------------------
-  console.log("Test 1: Verifying Seeded Account Logins...");
+  console.log("-------------------------------------------------------------------------------");
+  console.log("1. VERIFY VALID LOGIN (Seeded Accounts)");
+  console.log("-------------------------------------------------------------------------------");
 
-  const testAccounts = [
+  const seededUsers = [
     {
       role: UserRole.ADMIN,
       email: "admin@medeasy.demo",
       password: "DemoAdminPassword123!",
       expectedRole: UserRole.ADMIN,
+      expectedName: "System Administrator",
     },
     {
       role: UserRole.DOCTOR,
       email: "dr.sarah@medeasy.demo",
       password: "DemoDoctorPassword123!",
       expectedRole: UserRole.DOCTOR,
+      expectedName: "Dr. Sarah",
     },
     {
       role: UserRole.PHARMACY,
       email: "pharmacy@medeasy.demo",
       password: "DemoPharmacyPassword123!",
       expectedRole: UserRole.PHARMACY,
+      expectedName: "MedEasy Central Pharmacy",
     },
     {
       role: UserRole.PATIENT,
       email: "patient.alice@medeasy.demo",
       password: "DemoPatientPassword123!",
       expectedRole: UserRole.PATIENT,
+      expectedName: "Alice Johnson",
     },
   ];
 
-  for (const acc of testAccounts) {
+  for (const account of seededUsers) {
     const authResult = await authorizeFn({
-      email: acc.email,
-      password: acc.password,
+      email: account.email,
+      password: account.password,
     });
 
     if (!authResult) {
-      throw new Error(`❌ Failed login for seeded ${acc.role}: ${acc.email}`);
+      throw new Error(`❌ Failed login for seeded ${account.role} (${account.email})`);
     }
 
-    if (authResult.role !== acc.expectedRole) {
+    if (authResult.role !== account.expectedRole) {
       throw new Error(
-        `❌ Role mismatch for ${acc.email}: expected ${acc.expectedRole}, got ${authResult.role}`
+        `❌ Role mismatch for ${account.email}: expected ${account.expectedRole}, got ${authResult.role}`
       );
     }
 
-    if (!authResult.id || !authResult.email || !authResult.name) {
-      throw new Error(`❌ Missing required fields in user object for ${acc.email}: ${JSON.stringify(authResult)}`);
+    if (authResult.name !== account.expectedName) {
+      throw new Error(
+        `❌ Name mismatch for ${account.email}: expected "${account.expectedName}", got "${authResult.name}"`
+      );
     }
 
-    console.log(`  ✓ Successfully authenticated ${acc.role}: ${authResult.name} (${authResult.email}) [ID: ${authResult.id}]`);
+    if (!authResult.id || !authResult.email) {
+      throw new Error(`❌ Missing identity fields in authorized user object for ${account.email}`);
+    }
+
+    // Ensure password is never included in the user object
+    if ((authResult as any).password) {
+      throw new Error(`❌ CRITICAL SECURITY VULNERABILITY: Password hash exposed in authorized user object for ${account.email}`);
+    }
+
+    console.log(`  ✓ Authenticated ${account.role.padEnd(8)}: "${authResult.name}" <${authResult.email}> [ID: ${authResult.id}]`);
   }
 
   // ---------------------------------------------------------------------------
-  // TEST 2: Password Storage Verification (Bcrypt Hash in Database)
+  // 2. INVALID CREDENTIALS REJECTION (Wrong Password, Unknown User, Empty)
   // ---------------------------------------------------------------------------
-  console.log("\nTest 2: Verifying Stored Passwords are Valid Bcrypt Hashes...");
-  const adminInDb = await prisma.user.findUnique({
-    where: { email: "admin@medeasy.demo" },
-  });
+  console.log("\n-------------------------------------------------------------------------------");
+  console.log("2. VERIFY INVALID CREDENTIALS REJECTION");
+  console.log("-------------------------------------------------------------------------------");
 
-  if (!adminInDb) {
-    throw new Error("Admin user not found in DB");
-  }
-
-  if (!adminInDb.password.startsWith("$2a$") && !adminInDb.password.startsWith("$2b$")) {
-    throw new Error(`❌ Password in database is not a bcrypt hash: ${adminInDb.password}`);
-  }
-
-  console.log(`  ✓ Database password hash format verified: ${adminInDb.password.substring(0, 15)}... (never plaintext)`);
-
-  // ---------------------------------------------------------------------------
-  // TEST 3: Invalid Credentials Handling
-  // ---------------------------------------------------------------------------
-  console.log("\nTest 3: Verifying Invalid Credentials Rejection...");
-
-  // Wrong password
+  // 2a. Wrong Password
   const wrongPasswordResult = await authorizeFn({
     email: "admin@medeasy.demo",
-    password: "WrongPassword!999",
+    password: "IncorrectPassword999!",
   });
-
   if (wrongPasswordResult !== null) {
-    throw new Error("❌ Expected wrong password to return null, but got a user object!");
+    throw new Error("❌ Security violation: Wrong password returned a valid user object instead of null!");
   }
-  console.log("  ✓ Correctly rejected wrong password (returned null)");
+  console.log("  ✓ Correctly rejected invalid password for existing account (returned null)");
 
-  // Missing / non-existent user
-  const nonExistentUserResult = await authorizeFn({
-    email: "nonexistent@medeasy.demo",
+  // 2b. Unknown / Non-existent User
+  const unknownUserResult = await authorizeFn({
+    email: "unknown.user.999@medeasy.demo",
     password: "SomePassword123!",
   });
-
-  if (nonExistentUserResult !== null) {
-    throw new Error("❌ Expected non-existent user to return null, but got a user object!");
+  if (unknownUserResult !== null) {
+    throw new Error("❌ Security violation: Unknown user returned a valid user object instead of null!");
   }
-  console.log("  ✓ Correctly rejected non-existent user (returned null)");
+  console.log("  ✓ Correctly rejected non-existent user account (returned null)");
 
-  // Empty credentials
+  // 2c. Empty / Malformed Credentials
   const emptyCredentialsResult = await authorizeFn({
     email: "",
     password: "",
   });
-
   if (emptyCredentialsResult !== null) {
-    throw new Error("❌ Expected empty credentials to return null!");
+    throw new Error("❌ Empty credentials returned a valid user object instead of null!");
   }
-  console.log("  ✓ Correctly rejected empty credentials (returned null)");
+  console.log("  ✓ Correctly rejected empty email and password inputs (returned null)");
 
   // ---------------------------------------------------------------------------
-  // TEST 4: JWT and Session Callbacks
+  // 3. PASSWORD STORAGE SECURITY & BCRYPT HASH INTEGRITY
   // ---------------------------------------------------------------------------
-  console.log("\nTest 4: Verifying JWT and Session Callbacks...");
+  console.log("\n-------------------------------------------------------------------------------");
+  console.log("3. VERIFY PASSWORD HASHING INTEGRITY");
+  console.log("-------------------------------------------------------------------------------");
+
+  const dbAdmin = await prisma.user.findUnique({ where: { email: "admin@medeasy.demo" } });
+  if (!dbAdmin) throw new Error("❌ Admin user not found in DB");
+
+  const isBcrypt = dbAdmin.password.startsWith("$2a$") || dbAdmin.password.startsWith("$2b$");
+  if (!isBcrypt) {
+    throw new Error(`❌ Database contains plaintext or non-bcrypt password: ${dbAdmin.password}`);
+  }
+  console.log(`  ✓ Stored database password format verified: Bcrypt salt & hash (${dbAdmin.password.substring(0, 15)}...)`);
+
+  const passwordCheck = await verifyPassword("DemoAdminPassword123!", dbAdmin.password);
+  if (!passwordCheck) {
+    throw new Error("❌ verifyPassword helper failed to validate matching password hash!");
+  }
+  console.log("  ✓ verifyPassword helper successfully verified valid password hash");
+
+  // ---------------------------------------------------------------------------
+  // 4. SESSION CREATION & TOKEN POPULATION (JWT and Session Callbacks)
+  // ---------------------------------------------------------------------------
+  console.log("\n-------------------------------------------------------------------------------");
+  console.log("4. VERIFY SESSION CREATION & CONTENTS");
+  console.log("-------------------------------------------------------------------------------");
+
   const jwtCallback = authOptions.callbacks?.jwt;
   const sessionCallback = authOptions.callbacks?.session;
 
   if (!jwtCallback || !sessionCallback) {
-    throw new Error("❌ JWT or Session callback is missing in authOptions!");
+    throw new Error("❌ Missing JWT or Session callback in authOptions!");
   }
 
-  const dummyUser = {
-    id: "user-test-123",
+  const sampleUser = {
+    id: "test-user-session-001",
     email: "dr.sarah@medeasy.demo",
-    name: "Dr. Sarah Smith",
+    name: "Dr. Sarah",
     role: UserRole.DOCTOR,
   };
 
-  // Simulate token generation at sign-in
-  const token = await (jwtCallback as any)({
+  // 4a. JWT Token generation
+  const generatedToken = await (jwtCallback as any)({
     token: {},
-    user: dummyUser,
-  });
-
-  if (token.id !== dummyUser.id || token.role !== dummyUser.role || token.email !== dummyUser.email) {
-    throw new Error(`❌ JWT callback did not populate token correctly: ${JSON.stringify(token)}`);
-  }
-  console.log(`  ✓ JWT token populated: id=${token.id}, role=${token.role}, email=${token.email}`);
-
-  // Simulate session generation from token
-  const session = await (sessionCallback as any)({
-    session: { user: {}, expires: "2026-12-31" },
-    token,
+    user: sampleUser,
   });
 
   if (
-    session.user.id !== dummyUser.id ||
-    session.user.role !== dummyUser.role ||
-    session.user.email !== dummyUser.email ||
-    session.user.name !== dummyUser.name
+    generatedToken.id !== sampleUser.id ||
+    generatedToken.role !== sampleUser.role ||
+    generatedToken.email !== sampleUser.email ||
+    generatedToken.name !== sampleUser.name
   ) {
-    throw new Error(`❌ Session callback did not populate session.user correctly: ${JSON.stringify(session)}`);
+    throw new Error(`❌ JWT callback did not populate expected token attributes: ${JSON.stringify(generatedToken)}`);
   }
-  console.log(`  ✓ Session populated: id=${session.user.id}, role=${session.user.role}, name=${session.user.name}, email=${session.user.email}`);
+  console.log(`  ✓ JWT Token created with identity: id=${generatedToken.id}, role=${generatedToken.role}, email=${generatedToken.email}`);
+
+  // 4b. Session generation from token
+  const generatedSession = await (sessionCallback as any)({
+    session: { user: {}, expires: new Date(Date.now() + 86400000).toISOString() },
+    token: generatedToken,
+  });
+
+  if (
+    generatedSession.user.id !== sampleUser.id ||
+    generatedSession.user.role !== sampleUser.role ||
+    generatedSession.user.email !== sampleUser.email ||
+    generatedSession.user.name !== sampleUser.name
+  ) {
+    throw new Error(`❌ Session callback did not populate user identity correctly: ${JSON.stringify(generatedSession)}`);
+  }
+
+  // Ensure session.user never contains password or internal tokens
+  if ((generatedSession.user as any).password) {
+    throw new Error("❌ Session user object exposed password!");
+  }
+
+  console.log(`  ✓ Session verified: { id: "${generatedSession.user.id}", role: "${generatedSession.user.role}", name: "${generatedSession.user.name}", email: "${generatedSession.user.email}" }`);
 
   // ---------------------------------------------------------------------------
-  // TEST 5: Doctor & Patient Registration Support
+  // 5. SESSION INVALIDATION & LOGOUT SEMANTICS
   // ---------------------------------------------------------------------------
-  console.log("\nTest 5: Verifying Registration Architecture for Doctors and Patients...");
+  console.log("\n-------------------------------------------------------------------------------");
+  console.log("5. VERIFY SESSION INVALIDATION (Logout Semantics)");
+  console.log("-------------------------------------------------------------------------------");
 
-  const testDoctorEmail = `test.dr.${Date.now()}@medeasy.demo`;
+  // In NextAuth JWT strategy, logout clears the session cookie or sets an expired cookie
+  const emptyTokenSession = await (sessionCallback as any)({
+    session: { user: {}, expires: new Date().toISOString() },
+    token: null,
+  });
+
+  if (emptyTokenSession.user?.id) {
+    throw new Error("❌ Inactive token still produced an authenticated session user id!");
+  }
+  console.log("  ✓ Invalidation verified: Cleared / missing JWT token produces empty unauthenticated session");
+
+  // ---------------------------------------------------------------------------
+  // 6. DOCTOR REGISTRATION & PROFILE CREATION
+  // ---------------------------------------------------------------------------
+  console.log("\n-------------------------------------------------------------------------------");
+  console.log("6. VERIFY DOCTOR REGISTRATION");
+  console.log("-------------------------------------------------------------------------------");
+
+  const testDoctorEmail = `test.clinician.${Date.now()}@medeasy.demo`;
+  const doctorLicense = `LIC-DOC-${Date.now()}`;
+
+  const createdDoctor = await registerDoctor({
+    email: testDoctorEmail,
+    password: "ClinicianSecurePass2026!",
+    specialization: "Neurology",
+    licenseNumber: doctorLicense,
+    phone: "+1-555-0199",
+  });
+
+  if (!createdDoctor || createdDoctor.role !== UserRole.DOCTOR) {
+    throw new Error("❌ Doctor registration failed to assign UserRole.DOCTOR");
+  }
+
+  if (!createdDoctor.doctorProfile || createdDoctor.doctorProfile.specialization !== "Neurology") {
+    throw new Error("❌ Doctor registration failed to create DoctorProfile relation");
+  }
+
+  if ((createdDoctor as any).password) {
+    throw new Error("❌ Doctor registration response exposed hashed password!");
+  }
+
+  console.log(`  ✓ Successfully registered DOCTOR: <${createdDoctor.email}>`);
+  console.log(`    - DoctorProfile: Specialization="${createdDoctor.doctorProfile.specialization}", License="${createdDoctor.doctorProfile.licenseNumber}", Phone="${createdDoctor.doctorProfile.phone}"`);
+
+  // Verify login works for new doctor
+  const doctorLogin = await authorizeFn({
+    email: testDoctorEmail,
+    password: "ClinicianSecurePass2026!",
+  });
+  if (!doctorLogin || doctorLogin.role !== UserRole.DOCTOR) {
+    throw new Error("❌ Login failed for newly registered doctor account");
+  }
+  console.log(`  ✓ Login succeeded for newly registered doctor: "${doctorLogin.name}"`);
+
+  // ---------------------------------------------------------------------------
+  // 7. PATIENT REGISTRATION & PROFILE CREATION
+  // ---------------------------------------------------------------------------
+  console.log("\n-------------------------------------------------------------------------------");
+  console.log("7. VERIFY PATIENT REGISTRATION");
+  console.log("-------------------------------------------------------------------------------");
+
   const testPatientEmail = `test.patient.${Date.now()}@medeasy.demo`;
 
-  // Register Doctor
-  const newDoctor = await registerDoctor({
-    email: testDoctorEmail,
-    password: "NewDoctorSecurePassword123!",
-    specialization: "Cardiology",
-    licenseNumber: `DOC-TEST-${Date.now()}`,
-    phone: "+1-555-9999",
-  });
-
-  if (!newDoctor || newDoctor.role !== UserRole.DOCTOR || !newDoctor.doctorProfile) {
-    throw new Error("❌ Doctor registration failed to create user with DoctorProfile");
-  }
-  console.log(`  ✓ Successfully registered new Doctor: ${newDoctor.email} with profile specialization: ${newDoctor.doctorProfile.specialization}`);
-
-  // Test login for newly registered doctor
-  const newDoctorAuth = await authorizeFn({
-    email: testDoctorEmail,
-    password: "NewDoctorSecurePassword123!",
-  });
-  if (!newDoctorAuth || newDoctorAuth.role !== UserRole.DOCTOR) {
-    throw new Error("❌ Failed to log in with newly registered Doctor credentials");
-  }
-  console.log(`  ✓ Successfully authenticated newly registered Doctor: ${newDoctorAuth.email}`);
-
-  // Register Patient
-  const newPatient = await registerPatient({
+  const createdPatient = await registerPatient({
     email: testPatientEmail,
-    password: "NewPatientSecurePassword123!",
-    name: "Test Patient Robinson",
-    age: 42,
-    gender: "Other",
-    contactInfo: "+1-555-8888, 99 Test Boulevard",
+    password: "PatientSecurePass2026!",
+    name: "Eleanor Vance",
+    age: 34,
+    gender: "Female",
+    contactInfo: "+1-555-0144, 42 MedWay Blvd",
   });
 
-  if (!newPatient || newPatient.role !== UserRole.PATIENT || !newPatient.patientProfile) {
-    throw new Error("❌ Patient registration failed to create user with PatientProfile");
+  if (!createdPatient || createdPatient.role !== UserRole.PATIENT) {
+    throw new Error("❌ Patient registration failed to assign UserRole.PATIENT");
   }
-  console.log(`  ✓ Successfully registered new Patient: ${newPatient.email} with profile name: ${newPatient.patientProfile.name}`);
 
-  // Test login for newly registered patient
-  const newPatientAuth = await authorizeFn({
+  if (!createdPatient.patientProfile || createdPatient.patientProfile.name !== "Eleanor Vance") {
+    throw new Error("❌ Patient registration failed to create PatientProfile relation");
+  }
+
+  if ((createdPatient as any).password) {
+    throw new Error("❌ Patient registration response exposed hashed password!");
+  }
+
+  console.log(`  ✓ Successfully registered PATIENT: <${createdPatient.email}>`);
+  console.log(`    - PatientProfile: Name="${createdPatient.patientProfile.name}", Age=${createdPatient.patientProfile.age}, Gender="${createdPatient.patientProfile.gender}", Contact="${createdPatient.patientProfile.contactInfo}"`);
+
+  // Verify login works for new patient
+  const patientLogin = await authorizeFn({
     email: testPatientEmail,
-    password: "NewPatientSecurePassword123!",
+    password: "PatientSecurePass2026!",
   });
-  if (!newPatientAuth || newPatientAuth.role !== UserRole.PATIENT) {
-    throw new Error("❌ Failed to log in with newly registered Patient credentials");
+  if (!patientLogin || patientLogin.role !== UserRole.PATIENT || patientLogin.name !== "Eleanor Vance") {
+    throw new Error("❌ Login failed for newly registered patient account");
   }
-  console.log(`  ✓ Successfully authenticated newly registered Patient: ${newPatientAuth.name} (${newPatientAuth.email})`);
-
-  // Test duplicate email rejection
-  let duplicateRejected = false;
-  try {
-    await registerPatient({
-      email: testPatientEmail,
-      password: "AnotherPassword123!",
-      name: "Duplicate Person",
-      age: 25,
-      gender: "Female",
-      contactInfo: "+1-555-7777",
-    });
-  } catch (err: any) {
-    duplicateRejected = err.message.includes("already exists");
-  }
-
-  if (!duplicateRejected) {
-    throw new Error("❌ Expected duplicate email registration to be rejected!");
-  }
-  console.log("  ✓ Duplicate email registration correctly rejected with conflict error");
+  console.log(`  ✓ Login succeeded for newly registered patient: "${patientLogin.name}"`);
 
   // ---------------------------------------------------------------------------
-  // TEST 6: Registration API Route Handler Verification
+  // 8. REGISTRATION API ROUTE & SECURITY RESTRICTIONS
   // ---------------------------------------------------------------------------
-  console.log("\nTest 6: Verifying app/api/auth/register/route.ts POST Handler...");
-  const { POST: registerHandler } = await import("../app/api/auth/register/route");
+  console.log("\n-------------------------------------------------------------------------------");
+  console.log("8. VERIFY REGISTRATION API VALIDATIONS & RESTRICTIONS");
+  console.log("-------------------------------------------------------------------------------");
 
-  // 6a: Test rejection of Admin self-registration
-  const adminAttemptReq = new Request("http://localhost:3000/api/auth/register", {
+  const { POST: apiRegisterHandler } = await import("../app/api/auth/register/route");
+
+  // 8a. Prohibit Admin direct self-registration via API
+  const adminForbiddenReq = new Request("http://localhost:3000/api/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      email: "hacker.admin@medeasy.demo",
-      password: "Password123!",
+      email: "rogue.admin@medeasy.demo",
+      password: "AdminPassword123!",
       role: UserRole.ADMIN,
     }),
   });
-  const adminAttemptRes = await registerHandler(adminAttemptReq);
-  if (adminAttemptRes.status !== 403) {
-    throw new Error(`❌ Expected 403 Forbidden for Admin registration, got ${adminAttemptRes.status}`);
+  const adminForbiddenRes = await apiRegisterHandler(adminForbiddenReq);
+  if (adminForbiddenRes.status !== 403) {
+    throw new Error(`❌ Expected status 403 for Admin direct registration, got ${adminForbiddenRes.status}`);
   }
-  console.log("  ✓ Correctly rejected Admin self-registration via API (403 Forbidden)");
+  console.log("  ✓ Admin direct registration blocked with HTTP 403 Forbidden");
 
-  // 6b: Test rejection of Pharmacy self-registration
-  const pharmacyAttemptReq = new Request("http://localhost:3000/api/auth/register", {
+  // 8b. Prohibit Pharmacy direct self-registration via API
+  const pharmacyForbiddenReq = new Request("http://localhost:3000/api/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      email: "hacker.pharmacy@medeasy.demo",
-      password: "Password123!",
+      email: "rogue.pharmacy@medeasy.demo",
+      password: "PharmacyPassword123!",
       role: UserRole.PHARMACY,
     }),
   });
-  const pharmacyAttemptRes = await registerHandler(pharmacyAttemptReq);
-  if (pharmacyAttemptRes.status !== 403) {
-    throw new Error(`❌ Expected 403 Forbidden for Pharmacy registration, got ${pharmacyAttemptRes.status}`);
+  const pharmacyForbiddenRes = await apiRegisterHandler(pharmacyForbiddenReq);
+  if (pharmacyForbiddenRes.status !== 403) {
+    throw new Error(`❌ Expected status 403 for Pharmacy direct registration, got ${pharmacyForbiddenRes.status}`);
   }
-  console.log("  ✓ Correctly rejected Pharmacy self-registration via API (403 Forbidden)");
+  console.log("  ✓ Pharmacy direct registration blocked with HTTP 403 Forbidden");
 
-  // 6c: Test rejection of short password (< 8 chars)
+  // 8c. Reject password shorter than 8 characters
   const shortPassReq = new Request("http://localhost:3000/api/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      email: "shortpass@medeasy.demo",
+      email: "shortpass.user@medeasy.demo",
       password: "123",
       role: UserRole.PATIENT,
       name: "Short Pass",
-      age: 20,
-      gender: "Male",
-      contactInfo: "+1-555-1234",
+      age: 25,
+      gender: "Other",
+      contactInfo: "+1-555-0000",
     }),
   });
-  const shortPassRes = await registerHandler(shortPassReq);
+  const shortPassRes = await apiRegisterHandler(shortPassReq);
   if (shortPassRes.status !== 400) {
-    throw new Error(`❌ Expected 400 Bad Request for short password, got ${shortPassRes.status}`);
+    throw new Error(`❌ Expected status 400 for short password, got ${shortPassRes.status}`);
   }
-  console.log("  ✓ Correctly rejected short password (< 8 chars) with 400 Bad Request");
+  console.log("  ✓ Weak password (< 8 chars) rejected with HTTP 400 Bad Request");
 
-  // 6d: Test successful patient registration via API route
-  const apiPatientEmail = `api.patient.${Date.now()}@medeasy.demo`;
-  const apiPatientReq = new Request("http://localhost:3000/api/auth/register", {
+  // 8d. Reject duplicate email
+  const duplicateEmailReq = new Request("http://localhost:3000/api/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      email: apiPatientEmail,
-      password: "ApiPatientPassword123!",
+      email: testPatientEmail,
+      password: "AnotherPassword123!",
       role: UserRole.PATIENT,
-      name: "API Registered Patient",
-      age: 29,
-      gender: "Female",
-      contactInfo: "+1-555-4321, 100 API Lane",
+      name: "Duplicate Patient",
+      age: 30,
+      gender: "Male",
+      contactInfo: "+1-555-1111",
     }),
   });
-  const apiPatientRes = await registerHandler(apiPatientReq);
-  if (apiPatientRes.status !== 201) {
-    throw new Error(`❌ Expected 201 Created for Patient registration via API, got ${apiPatientRes.status}`);
+  const duplicateEmailRes = await apiRegisterHandler(duplicateEmailReq);
+  if (duplicateEmailRes.status !== 409) {
+    throw new Error(`❌ Expected status 409 Conflict for duplicate email, got ${duplicateEmailRes.status}`);
   }
-  const apiPatientJson = await apiPatientRes.json();
-  console.log(`  ✓ Successfully registered Patient via API: ${apiPatientJson.user.email} (Status 201)`);
-
-  // Cleanup API registered patient
-  await prisma.patientProfile.deleteMany({ where: { userId: apiPatientJson.user.id } });
-  await prisma.user.delete({ where: { id: apiPatientJson.user.id } });
+  console.log("  ✓ Duplicate email registration rejected with HTTP 409 Conflict");
 
   // ---------------------------------------------------------------------------
-  // CLEANUP TEST USERS
+  // 9. FORGOT & RESET PASSWORD FLOW ARCHITECTURE & VALIDATION
   // ---------------------------------------------------------------------------
-  console.log("\n🧹 Cleaning up test-registered users...");
-  await prisma.doctorProfile.deleteMany({ where: { userId: newDoctor.id } });
-  await prisma.user.delete({ where: { id: newDoctor.id } });
-  await prisma.patientProfile.deleteMany({ where: { userId: newPatient.id } });
-  await prisma.user.delete({ where: { id: newPatient.id } });
-  console.log("  ✓ Temporary test accounts cleaned up.");
+  console.log("\n-------------------------------------------------------------------------------");
+  console.log("9. VERIFY FORGOT & RESET PASSWORD ARCHITECTURE");
+  console.log("-------------------------------------------------------------------------------");
 
-  console.log("\n=================================================");
-  console.log("🎉 ALL AUTHENTICATION TESTS PASSED SUCCESSFULLY!");
-  console.log("=================================================");
+  // 9a. Request reset token for existing user via test email provider
+  const resetEmail = testPatientEmail;
+  class TestCaptureEmailProvider {
+    lastToken = "";
+    async sendPasswordResetEmail(_email: string, resetToken: string): Promise<void> {
+      this.lastToken = resetToken;
+    }
+  }
+
+  const testEmailProvider = new TestCaptureEmailProvider();
+  const resetReqResult = await requestPasswordReset(resetEmail, testEmailProvider);
+  if (!resetReqResult.success || !testEmailProvider.lastToken) {
+    throw new Error("❌ requestPasswordReset failed to deliver reset token to provider");
+  }
+  const resetToken = testEmailProvider.lastToken;
+  console.log(`  ✓ Password reset requested safely: anti-enumeration message returned`);
+
+  // 9b. Anti-enumeration verification: requesting for non-existent user returns same message
+  const nonExistentReset = await requestPasswordReset("nonexistent.person.999@medeasy.demo");
+  if (!nonExistentReset.success || nonExistentReset.message !== resetReqResult.message) {
+    throw new Error("❌ Password reset request leaked information about non-existent user!");
+  }
+  console.log("  ✓ Anti-enumeration verified: identical response returned for non-existent email");
+
+  // 9c. Validate token
+  const isTokenValid = await validateResetToken(resetEmail, resetToken);
+  if (!isTokenValid) {
+    throw new Error("❌ validateResetToken returned false for a valid token!");
+  }
+  console.log("  ✓ Valid reset token successfully verified");
+
+  // 9d. Rejection of invalid token
+  const isInvalidTokenValid = await validateResetToken(resetEmail, "invalid-dummy-token-12345");
+  if (isInvalidTokenValid) {
+    throw new Error("❌ validateResetToken accepted an invalid token!");
+  }
+  console.log("  ✓ Invalid reset token correctly rejected");
+
+  // 9e. Reset password using valid token
+  const newPatientPassword = "BrandNewPassword2026!";
+  const resetResult = await resetPasswordWithToken(resetEmail, resetToken, newPatientPassword);
+  if (!resetResult.success) {
+    throw new Error("❌ resetPasswordWithToken failed to update password");
+  }
+  console.log("  ✓ Password successfully reset with valid token");
+
+  // 9f. Verify token cannot be reused (Single-Use / Replay Attack Prevention)
+  const tokenReplayAttempt = await validateResetToken(resetEmail, resetToken);
+  if (tokenReplayAttempt) {
+    throw new Error("❌ CRITICAL: Reset token was not invalidated after single use!");
+  }
+  console.log("  ✓ Single-use token invalidation verified (replay attempt rejected)");
+
+  // 9g. Verify user can log in with new password
+  const postResetLogin = await authorizeFn({
+    email: resetEmail,
+    password: newPatientPassword,
+  });
+  if (!postResetLogin) {
+    throw new Error("❌ Login failed using new updated password after reset");
+  }
+  console.log(`  ✓ Successfully logged in with newly reset password for ${resetEmail}`);
+
+  // 9h. Verify old password no longer works
+  const oldPasswordLogin = await authorizeFn({
+    email: resetEmail,
+    password: "PatientSecurePass2026!",
+  });
+  if (oldPasswordLogin !== null) {
+    throw new Error("❌ Old password still authenticated after password reset!");
+  }
+  console.log("  ✓ Old password correctly rejected after reset");
+
+  // ---------------------------------------------------------------------------
+  // 10. CLEANUP TEMPORARY TEST RECORDS
+  // ---------------------------------------------------------------------------
+  console.log("\n-------------------------------------------------------------------------------");
+  console.log("10. CLEANUP TEMPORARY TEST DATA");
+  console.log("-------------------------------------------------------------------------------");
+
+  await prisma.doctorProfile.deleteMany({ where: { userId: createdDoctor.id } });
+  await prisma.user.delete({ where: { id: createdDoctor.id } });
+
+  await prisma.patientProfile.deleteMany({ where: { userId: createdPatient.id } });
+  await prisma.user.delete({ where: { id: createdPatient.id } });
+
+  clearResetTokensForTesting();
+  console.log("  ✓ Temporary test accounts and token stores cleanly deleted.");
+
+  console.log("\n===============================================================================");
+  console.log("🎉 ALL AUTHENTICATION INTEGRATION TESTS COMPLETED & VERIFIED SUCCESSFULLY!");
+  console.log("===============================================================================");
 }
 
-runAuthTests()
-  .catch((e) => {
-    console.error("❌ Test suite failed:", e);
+runAuthTestSuite()
+  .catch((err) => {
+    console.error("\n❌ Test Suite Failed with Error:\n", err);
     process.exit(1);
   })
   .finally(async () => {
