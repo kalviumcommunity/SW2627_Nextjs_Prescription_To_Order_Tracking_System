@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { PrescriptionDetails } from '@/components/prescriptions/PrescriptionDetails';
 
 interface MedicineItem {
   id: string;
@@ -533,126 +534,12 @@ export default function DoctorDashboardPage() {
 
       {/* PRESCRIPTION DETAIL MODAL */}
       {selectedPrescription && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Prescription Details</h3>
-                <p className="text-xs font-mono text-gray-500 mt-0.5">
-                  ID: #{selectedPrescription.id} &bull; Created {formatDate(selectedPrescription.createdAt)}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedPrescription(null)}
-                className="text-gray-400 hover:text-gray-600 text-xl font-bold p-1"
-              >
-                &times;
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* Status and Patient Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase">Patient</p>
-                  <p className="text-base font-bold text-gray-900 mt-0.5">
-                    {selectedPrescription.patient.name}
-                  </p>
-                  {selectedPrescription.patient.contactInfo && (
-                    <p className="text-xs text-gray-600 mt-0.5">
-                      {selectedPrescription.patient.contactInfo}
-                    </p>
-                  )}
-                </div>
-                <div className="sm:text-right">
-                  <p className="text-xs font-semibold text-gray-500 uppercase">Status</p>
-                  <div className="mt-1">{getStatusBadge(selectedPrescription.status)}</div>
-                </div>
-              </div>
-
-              {/* Diagnosis */}
-              <div>
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Clinical Diagnosis
-                </h4>
-                <div className="mt-1 p-3 bg-blue-50/50 border border-blue-100 rounded-md text-sm text-gray-800 font-medium">
-                  {selectedPrescription.diagnosis}
-                </div>
-              </div>
-
-              {/* Prescribed Medications */}
-              <div>
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                  Prescribed Medications ({selectedPrescription.prescriptionMedicines.length})
-                </h4>
-                <div className="space-y-2.5">
-                  {selectedPrescription.prescriptionMedicines.map((item, idx) => (
-                    <div
-                      key={item.id || idx}
-                      className="p-3.5 bg-white border border-gray-200 rounded-lg shadow-sm space-y-1.5"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-sm text-gray-900">
-                          {item.medicine.name}
-                        </span>
-                        <span className="text-xs text-gray-500 font-mono">
-                          {item.medicine.genericName}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-600 pt-1 border-t border-gray-100">
-                        <div>
-                          <strong className="text-gray-700">Dosage:</strong> {item.dosage}
-                        </div>
-                        <div>
-                          <strong className="text-gray-700">Frequency:</strong> {item.frequency}
-                        </div>
-                        <div>
-                          <strong className="text-gray-700">Duration:</strong> {item.duration}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Fulfillment Data (If filled) */}
-              {selectedPrescription.fill && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-green-900 uppercase">
-                      Dispensing Fulfillment
-                    </span>
-                    <span className="text-xs text-green-700">
-                      Filled: {formatDate(selectedPrescription.fill.filledAt)}
-                    </span>
-                  </div>
-                  {selectedPrescription.fill.pharmacy && (
-                    <p className="text-xs text-green-800">
-                      <strong>Dispensed by:</strong>{' '}
-                      {selectedPrescription.fill.pharmacy.pharmacyName} (
-                      {selectedPrescription.fill.pharmacy.phone})
-                    </p>
-                  )}
-                  {selectedPrescription.fill.notes && (
-                    <p className="text-xs text-green-700 bg-white/60 p-2 rounded border border-green-100">
-                      <strong>Pharmacist Notes:</strong> {selectedPrescription.fill.notes}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setSelectedPrescription(null)}
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-        </div>
+        <PrescriptionDetails
+          prescription={selectedPrescription}
+          viewerRole="DOCTOR"
+          isModal={true}
+          onClose={() => setSelectedPrescription(null)}
+        />
       )}
     </div>
   );
