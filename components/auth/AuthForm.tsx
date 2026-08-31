@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
+import { UserRole } from "@prisma/client";
+import { getDefaultDashboardPath } from "@/lib/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+
 
 type AuthMode = "login" | "doctor" | "patient";
 type FormValues = Record<string, string>;
@@ -72,7 +75,15 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         setMessage("We could not sign you in with those details.");
       } else {
         setStatus("success");
-        setMessage("You are signed in successfully.");
+        setMessage("You are signed in successfully. Redirecting...");
+        try {
+          const sessionRes = await fetch("/api/auth/session");
+          const sessionData = await sessionRes.json();
+          const targetPath = getDefaultDashboardPath(sessionData?.user?.role as UserRole);
+          window.location.href = targetPath;
+        } catch {
+          window.location.href = "/";
+        }
       }
       return;
     }
