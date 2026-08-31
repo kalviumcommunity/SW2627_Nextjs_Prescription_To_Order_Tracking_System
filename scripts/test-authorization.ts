@@ -78,38 +78,39 @@ async function runAuthorizationTestSuite() {
   // ---------------------------------------------------------------------------
   // 2. ROLE-BASED ACCESS CONTROL REJECTION (HTTP 403)
   // ---------------------------------------------------------------------------
+  // 2. COMPLETE 4x4 RBAC AUTHORIZATION MATRIX (HTTP 403 FORBIDDEN / 200 OK)
+  // ---------------------------------------------------------------------------
   console.log("\n-------------------------------------------------------------------------------");
-  console.log("2. VERIFY 403 FORBIDDEN ON ROLE MISMATCH");
+  console.log("2. VERIFY COMPLETE 4x4 RBAC AUTHORIZATION MATRIX");
   console.log("-------------------------------------------------------------------------------");
 
-  const mismatchTests = [
-    { caller: patientAuth, requiredRole: UserRole.DOCTOR, targetDesc: "Doctor-only endpoint" },
-    { caller: doctorAuth, requiredRole: UserRole.PHARMACY, targetDesc: "Pharmacy-only endpoint" },
-    { caller: pharmacyAuth, requiredRole: UserRole.ADMIN, targetDesc: "Admin-only endpoint" },
-    { caller: patientAuth, requiredRole: [UserRole.DOCTOR, UserRole.ADMIN], targetDesc: "Clinician/Admin endpoint" },
-    { caller: doctorAuth, requiredRole: UserRole.PATIENT, targetDesc: "Patient-only endpoint" },
+  const roles = [
+    { name: "ADMIN", auth: adminAuth, targetRole: UserRole.ADMIN, desc: "Admin-only resource" },
+    { name: "DOCTOR", auth: doctorAuth, targetRole: UserRole.DOCTOR, desc: "Doctor-only resource" },
+    { name: "PHARMACY", auth: pharmacyAuth, targetRole: UserRole.PHARMACY, desc: "Pharmacy-only resource" },
+    { name: "PATIENT", auth: patientAuth, targetRole: UserRole.PATIENT, desc: "Patient-only resource" },
   ];
 
-  for (const test of mismatchTests) {
-    let caught403 = false;
-    try {
-      await requireRole(test.requiredRole, test.caller);
-    } catch (error) {
-      if (error instanceof AuthorizationError && error.statusCode === 403) {
-        caught403 = true;
+  for (const caller of roles) {
+    for (const target of roles) {
+      const isAllowed = caller.name === target.name;
+      const routeResult = await authorizeRequest({
+        allowedRoles: [target.targetRole],
+        userOverride: caller.auth,
+      });
+
+      if (isAllowed) {
+        if (routeResult.errorResponse !== null || routeResult.user?.id !== caller.auth.id) {
+          throw new Error(`❌ RBAC Matrix Failure: ${caller.name} was rejected from ${target.desc}!`);
+        }
+        console.log(`  ✓ Matrix [${caller.name.padEnd(8)} -> ${target.name.padEnd(8)}]: ALLOWED (HTTP 200)`);
+      } else {
+        if (!routeResult.errorResponse || routeResult.errorResponse.status !== 403) {
+          throw new Error(`❌ RBAC Matrix Failure: ${caller.name} was NOT blocked from ${target.desc} with 403!`);
+        }
+        console.log(`  ✓ Matrix [${caller.name.padEnd(8)} -> ${target.name.padEnd(8)}]: BLOCKED (HTTP 403 Forbidden)`);
       }
     }
-
-    if (!caught403) {
-      throw new Error(`❌ Role check failed to block ${test.caller.role} from ${test.targetDesc}`);
-    }
-
-    const routeResult = await authorizeRequest({ allowedRoles: test.requiredRole, userOverride: test.caller });
-    if (!routeResult.errorResponse || routeResult.errorResponse.status !== 403) {
-      throw new Error(`❌ authorizeRequest failed to return 403 for ${test.caller.role} accessing ${test.targetDesc}`);
-    }
-
-    console.log(`  ✓ Blocked ${test.caller.role.padEnd(8)} from ${test.targetDesc.padEnd(25)} (HTTP 403 Forbidden)`);
   }
 
   // ---------------------------------------------------------------------------
