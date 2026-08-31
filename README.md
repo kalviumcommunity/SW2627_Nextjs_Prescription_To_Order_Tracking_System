@@ -109,3 +109,5 @@ We use Docker Compose to provide a consistent PostgreSQL environment for local d
 4. Fill out the Pull Request template entirely.
 5. Ensure all CI checks (lint, build) pass.
 6. Request a review from team members before merging.
+
+// Do it accordingly
