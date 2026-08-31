@@ -5,7 +5,11 @@ import { authOptions } from "@/lib/auth";
  * Retrieves the current authenticated session on the server.
  */
 export async function getAuthSession() {
-  return await getServerSession(authOptions);
+  try {
+    return await getServerSession(authOptions);
+  } catch {
+    return null;
+  }
 }
 
 /**
