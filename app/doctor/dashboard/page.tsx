@@ -163,22 +163,23 @@ export default function DoctorDashboardPage() {
             </svg>
             Refresh
           </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setShowQuickActionNotice(true)}
-            className="flex items-center gap-1.5 shadow-sm"
-          >
-            <svg
-              className="w-4 h-4 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          <Link href="/doctor/prescriptions/new">
+            <Button
+              variant="primary"
+              size="sm"
+              className="flex items-center gap-1.5 shadow-sm"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            New Prescription
-          </Button>
+              <svg
+                className="w-4 h-4 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              New Prescription
+            </Button>
+          </Link>
         </div>
       </div>
 

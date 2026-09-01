@@ -261,12 +261,6 @@ export default function NewPrescriptionPage() {
         text: 'Prescription created successfully.',
       });
 
-      const createdId = data.prescription?.id;
-      if (createdId) {
-        router.push(`/doctor/prescriptions/${createdId}`);
-        return;
-      }
-
       router.push('/doctor/prescriptions');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Something went wrong.';
