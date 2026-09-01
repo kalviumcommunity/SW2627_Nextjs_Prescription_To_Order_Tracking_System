@@ -13,6 +13,7 @@
     "test:doctor:create": "tsx scripts/test-doctor-create-prescription.ts",
     "test:doctor-integration": "tsx scripts/test-doctor-integration.ts",
     "test:nav": "tsx scripts/test-protected-navigation.ts",
+    "test:day9": "tsx scripts/test-day9-doctor-detail-storage.ts",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate dev",

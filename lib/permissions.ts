@@ -185,14 +185,53 @@ export async function canUserAccessPrescription(
   const prescription = await prisma.prescription.findUnique({
     where: { id: prescriptionId },
     include: {
-      doctor: { select: { id: true, specialization: true, phone: true } },
-      patient: { select: { id: true, name: true, contactInfo: true } },
-      prescriptionMedicines: {
-        include: {
-          medicine: true,
+      doctor: {
+        select: {
+          id: true,
+          specialization: true,
+          licenseNumber: true,
+          phone: true,
+          user: {
+            select: {
+              email: true,
+            },
+          },
         },
       },
-      fill: true,
+      patient: {
+        select: {
+          id: true,
+          name: true,
+          age: true,
+          gender: true,
+          contactInfo: true,
+        },
+      },
+      prescriptionMedicines: {
+        include: {
+          medicine: {
+            select: {
+              id: true,
+              name: true,
+              genericName: true,
+              stockStatus: true,
+            },
+          },
+        },
+      },
+      fill: {
+        select: {
+          id: true,
+          filledAt: true,
+          notes: true,
+          pharmacy: {
+            select: {
+              pharmacyName: true,
+              phone: true,
+            },
+          },
+        },
+      },
     },
   });
 
