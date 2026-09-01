@@ -52,6 +52,7 @@ export interface PrescriptionData {
   doctorId?: string;
   patientId?: string;
   diagnosis?: string | null;
+  documentRef?: string | null;
   status: 'PENDING' | 'FILLED' | 'CANNOT_FILL';
   createdAt: string | Date;
   updatedAt?: string | Date;
@@ -226,6 +227,23 @@ export function PrescriptionDetails({
           ))}
         </div>
       </div>
+
+      {/* Prescription Document Attachment Reference */}
+      {prescription.documentRef && (
+        <div className="rounded-lg bg-slate-50 p-3.5 border border-slate-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-0.5">
+                Prescription Document Attachment
+              </p>
+              <p className="text-xs text-slate-600 font-mono break-all">
+                {prescription.documentRef}
+              </p>
+            </div>
+            <Badge variant="outline">Cloud Document</Badge>
+          </div>
+        </div>
+      )}
 
       {/* Fulfillment Status & Notes */}
       {prescription.fill ? (
