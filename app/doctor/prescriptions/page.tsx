@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { PrescriptionDetails } from '@/components/prescriptions/PrescriptionDetails';
 
 interface MedicineItem {
   id: string;
@@ -64,7 +63,6 @@ export default function DoctorPrescriptionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
 
   const fetchPrescriptions = useCallback(async () => {
     setIsLoading(true);
@@ -93,17 +91,15 @@ export default function DoctorPrescriptionsPage() {
     if (!data?.prescriptions) return [];
 
     return data.prescriptions.filter((rx) => {
-      // 1. Status Filter
       if (statusFilter !== 'ALL' && rx.status !== statusFilter) {
         return false;
       }
 
-      // 2. Text Search
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesPatient = rx.patient.name.toLowerCase().includes(q);
         const matchesId = rx.id.toLowerCase().includes(q);
-        const matchesDiagnosis = rx.diagnosis.toLowerCase().includes(q);
+        const matchesDiagnosis = rx.diagnosis?.toLowerCase().includes(q) ?? false;
         const matchesMed = rx.prescriptionMedicines.some(
           (m) =>
             m.medicine.name.toLowerCase().includes(q) ||
@@ -157,7 +153,6 @@ export default function DoctorPrescriptionsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-gray-200">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Authored Prescriptions</h1>
@@ -180,54 +175,18 @@ export default function DoctorPrescriptionsPage() {
             isLoading={isLoading}
             className="flex items-center gap-1.5"
           >
-            <svg
-              className="w-4 h-4 text-gray-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
             Refresh
           </Button>
           <Link href="/doctor/prescriptions/new">
-            <Button
-              variant="primary"
-              size="sm"
-              className="flex items-center gap-1.5 shadow-sm"
-            >
-              <svg
-                className="w-4 h-4 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
+            <Button variant="primary" size="sm" className="flex items-center gap-1.5 shadow-sm">
               New Prescription
             </Button>
           </Link>
         </div>
       </div>
 
-      {/* ERROR STATE */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          </div>
           <h3 className="text-lg font-medium text-red-900">Unable to load prescriptions</h3>
           <p className="text-sm text-red-700 max-w-md mx-auto">{error}</p>
           <Button variant="primary" size="sm" onClick={fetchPrescriptions}>
@@ -236,25 +195,20 @@ export default function DoctorPrescriptionsPage() {
         </div>
       )}
 
-      {/* LOADING STATE */}
       {isLoading && !data && (
         <div className="space-y-4">
-          <div className="h-10 bg-gray-200 rounded-lg animate-pulse w-full max-w-md"></div>
           <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm animate-pulse space-y-4">
             <div className="h-6 bg-gray-200 rounded w-1/4"></div>
-            {[1, 2, 3, 4, 5].map((i) => (
+            {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-12 bg-gray-100 rounded w-full"></div>
             ))}
           </div>
         </div>
       )}
 
-      {/* SUCCESS CONTENT */}
       {data && (
         <div className="space-y-4">
-          {/* Controls Bar: Filters & Search */}
           <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm space-y-4 sm:space-y-0 sm:flex sm:items-center sm:justify-between gap-4">
-            {/* Filter Tabs */}
             <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
               <button
                 onClick={() => setStatusFilter('ALL')}
@@ -298,24 +252,13 @@ export default function DoctorPrescriptionsPage() {
               </button>
             </div>
 
-            {/* Search Input */}
             <div className="relative flex-1 max-w-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search patient, medication, diagnosis..."
-                className="w-full pl-9 pr-4 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-3 pr-10 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               {searchQuery && (
                 <button
@@ -328,7 +271,6 @@ export default function DoctorPrescriptionsPage() {
             </div>
           </div>
 
-          {/* Prescriptions Table */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
@@ -339,19 +281,8 @@ export default function DoctorPrescriptionsPage() {
               </div>
             </CardHeader>
 
-            {/* EMPTY STATE */}
             {data.prescriptions.length === 0 ? (
               <CardContent className="p-12 text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                </div>
                 <h4 className="text-base font-semibold text-gray-800">No Prescriptions Issued</h4>
                 <p className="text-xs text-gray-500 max-w-sm mx-auto">
                   You have not authored any prescriptions yet. Newly created prescriptions will appear here.
@@ -382,56 +313,43 @@ export default function DoctorPrescriptionsPage() {
                     <tr>
                       <th className="px-6 py-3 font-semibold">Prescription ID</th>
                       <th className="px-6 py-3 font-semibold">Patient</th>
-                      <th className="px-6 py-3 font-semibold">Diagnosis</th>
-                      <th className="px-6 py-3 font-semibold">Medications</th>
+                      <th className="px-6 py-3 font-semibold">Medicines</th>
+                      <th className="px-6 py-3 font-semibold">Created</th>
                       <th className="px-6 py-3 font-semibold">Status</th>
-                      <th className="px-6 py-3 font-semibold">Date</th>
                       <th className="px-6 py-3 font-semibold text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {filteredPrescriptions.map((rx) => (
                       <tr key={rx.id} className="hover:bg-gray-50/80 transition-colors">
-                        <td className="px-6 py-4 font-mono text-xs text-gray-900 font-bold">
-                          #{rx.id.slice(-8).toUpperCase()}
-                        </td>
+                        <td className="px-6 py-4 font-mono text-xs text-gray-900 font-bold">#{rx.id.slice(-8).toUpperCase()}</td>
                         <td className="px-6 py-4">
                           <div className="font-semibold text-gray-900">{rx.patient.name}</div>
-                          {rx.patient.contactInfo && (
-                            <div className="text-xs text-gray-400 truncate max-w-[150px]">
-                              {rx.patient.contactInfo}
+                          {rx.patient.age && (
+                            <div className="text-xs text-gray-500">
+                              {rx.patient.age} yrs{rx.patient.gender ? ` • ${rx.patient.gender}` : ''}
                             </div>
                           )}
-                        </td>
-                        <td className="px-6 py-4 max-w-[200px] truncate text-gray-700">
-                          {rx.diagnosis}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-1.5">
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700">
-                              {rx.prescriptionMedicines.length}{' '}
-                              {rx.prescriptionMedicines.length === 1 ? 'item' : 'items'}
+                              {rx.prescriptionMedicines.length}
                             </span>
-                            <span className="text-xs text-gray-500 truncate max-w-[130px]">
-                              {rx.prescriptionMedicines
-                                .map((m) => m.medicine.name)
-                                .join(', ')}
+                            <span className="text-xs text-gray-500 truncate max-w-[180px]">
+                              {rx.prescriptionMedicines.map((m) => m.medicine.name).slice(0, 2).join(', ')}
+                              {rx.prescriptionMedicines.length > 2 ? ' + more' : ''}
                             </span>
                           </div>
                         </td>
+                        <td className="px-6 py-4 text-xs text-gray-500">{formatDate(rx.createdAt)}</td>
                         <td className="px-6 py-4">{getStatusBadge(rx.status)}</td>
-                        <td className="px-6 py-4 text-xs text-gray-500">
-                          {formatDate(rx.createdAt)}
-                        </td>
                         <td className="px-6 py-4 text-right">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => setSelectedPrescription(rx)}
-                            className="text-xs h-8 px-3"
-                          >
-                            View Details
-                          </Button>
+                          <Link href={`/doctor/prescriptions/${rx.id}`}>
+                            <Button variant="secondary" size="sm" className="text-xs h-8 px-3">
+                              View Details
+                            </Button>
+                          </Link>
                         </td>
                       </tr>
                     ))}
@@ -441,16 +359,6 @@ export default function DoctorPrescriptionsPage() {
             )}
           </Card>
         </div>
-      )}
-
-      {/* DETAILED INSPECTION MODAL */}
-      {selectedPrescription && (
-        <PrescriptionDetails
-          prescription={selectedPrescription}
-          viewerRole="DOCTOR"
-          isModal={true}
-          onClose={() => setSelectedPrescription(null)}
-        />
       )}
     </div>
   );

@@ -286,6 +286,7 @@ export async function getDoctorPrescriptionDetail(
           phone: true,
           user: {
             select: {
+              id: true,
               email: true,
             },
           },

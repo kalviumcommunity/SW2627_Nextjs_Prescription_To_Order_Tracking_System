@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     }
 
     // 3. Extract File Properties
-    const originalName = (file as any).name || "prescription-document.pdf";
+    const originalName = file.name || "prescription-document.pdf";
     const mimeType = file.type || "application/octet-stream";
     const size = file.size;
 
@@ -71,12 +71,18 @@ export async function POST(req: Request) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const validation = validateDocumentFile({
-      buffer,
-      originalName,
-      mimeType,
-      size,
-    });
+    const validation = validateDocumentFile(
+      {
+        buffer,
+        originalName,
+        mimeType,
+        size,
+      },
+      {
+        allowedMimeTypes: ALLOWED_PRESCRIPTION_MIME_TYPES,
+        allowedExtensions: ALLOWED_PRESCRIPTION_EXTENSIONS,
+      }
+    );
 
     if (!validation.valid) {
       return NextResponse.json(
