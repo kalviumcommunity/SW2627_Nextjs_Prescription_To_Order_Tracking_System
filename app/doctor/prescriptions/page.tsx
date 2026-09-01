@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -194,6 +195,19 @@ export default function DoctorPrescriptionsPage() {
             </svg>
             Refresh
           </Button>
+          <Link href="/doctor/prescriptions/new">
+            <Button variant="primary" size="sm" className="flex items-center gap-1.5 shadow-sm">
+              <svg
+                className="w-4 h-4 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              New Prescription
+            </Button>
+          </Link>
         </div>
       </div>
 
