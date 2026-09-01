@@ -223,6 +223,20 @@ export async function getDoctorPrescriptionDetail(
   const prescription = await prisma.prescription.findUnique({
     where: { id: prescriptionId },
     include: {
+      doctor: {
+        select: {
+          id: true,
+          specialization: true,
+          licenseNumber: true,
+          phone: true,
+          user: {
+            select: {
+              id: true,
+              email: true,
+            },
+          },
+        },
+      },
       patient: {
         select: {
           id: true,

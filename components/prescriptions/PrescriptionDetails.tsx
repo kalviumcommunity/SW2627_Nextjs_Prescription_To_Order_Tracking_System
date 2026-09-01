@@ -52,6 +52,7 @@ export interface PrescriptionData {
   doctorId?: string;
   patientId?: string;
   diagnosis?: string | null;
+  documentRef?: string | null;
   status: 'PENDING' | 'FILLED' | 'CANNOT_FILL';
   createdAt: string | Date;
   updatedAt?: string | Date;
@@ -98,14 +99,21 @@ export function PrescriptionDetails({
   const getStatusBadge = (status: PrescriptionData['status']) => {
     switch (status) {
       case 'FILLED':
-        return <Badge variant="success">FILLED</Badge>;
+        return <Badge variant="success">Filled</Badge>;
       case 'CANNOT_FILL':
-        return <Badge variant="destructive">CANNOT FILL</Badge>;
+        return <Badge variant="destructive">Cannot Fill</Badge>;
       case 'PENDING':
       default:
-        return <Badge variant="warning">PENDING</Badge>;
+        return <Badge variant="warning">Pending</Badge>;
     }
   };
+
+  const doctorName =
+    prescription.doctor?.user?.name ||
+    (prescription.doctor?.user?.email ? prescription.doctor.user.email.split('@')[0] : 'Doctor');
+
+  const documentReference = prescription.documentRef?.trim();
+  const documentHref = documentReference ? (documentReference.startsWith('http://') || documentReference.startsWith('https://') ? documentReference : undefined) : undefined;
 
   const content = (
     <div className="space-y-6">
@@ -160,7 +168,7 @@ export function PrescriptionDetails({
             Authoring Clinician
           </p>
           <p className="text-sm font-bold text-gray-900">
-            {prescription.doctor?.user?.name || (viewerRole === 'DOCTOR' ? 'Dr. Sarah (You)' : 'Attending Physician')}
+            {doctorName}
           </p>
           {prescription.doctor?.specialization && (
             <p className="text-xs text-gray-600">
@@ -175,6 +183,21 @@ export function PrescriptionDetails({
         </div>
       </div>
 
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="rounded-lg bg-gray-50 p-3.5 border border-gray-100">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+            Created Timestamp
+          </p>
+          <p className="text-sm font-medium text-gray-900">{formatDate(prescription.createdAt)}</p>
+        </div>
+        <div className="rounded-lg bg-gray-50 p-3.5 border border-gray-100">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+            Fulfillment Timestamp
+          </p>
+          <p className="text-sm font-medium text-gray-900">{prescription.fill?.filledAt ? formatDate(prescription.fill.filledAt) : 'Not yet fulfilled'}</p>
+        </div>
+      </div>
+
       {/* Clinical Diagnosis (Strictly redacted for Pharmacy) */}
       {canViewDiagnosis && (
         <div className="rounded-lg bg-blue-50/60 p-3.5 border border-blue-100/80">
@@ -186,6 +209,23 @@ export function PrescriptionDetails({
           </p>
         </div>
       )}
+
+      <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3.5">
+        <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
+          Prescription Document
+        </p>
+        {documentReference ? (
+          documentHref ? (
+            <a href={documentHref} target="_blank" rel="noreferrer" className="inline-flex text-sm font-medium text-blue-700 underline underline-offset-2">
+              {documentReference}
+            </a>
+          ) : (
+            <p className="text-sm font-medium text-gray-900">{documentReference}</p>
+          )
+        ) : (
+          <p className="text-sm text-gray-500">No document reference attached to this prescription.</p>
+        )}
+      </div>
 
       {/* Itemized Medications */}
       <div>
