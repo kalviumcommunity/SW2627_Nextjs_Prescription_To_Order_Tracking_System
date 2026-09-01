@@ -134,6 +134,19 @@ export async function getDoctorPatientsRoster(userId: string) {
 }
 
 /**
+ * Helper to derive a clean display name from user email / account.
+ */
+export function formatDoctorDisplayName(userEmail?: string | null): string {
+  if (!userEmail) return "Attending Physician";
+  const emailName = userEmail.split("@")[0].replace(/^dr\./i, "").replace(/\./g, " ");
+  const capitalized = emailName
+    .split(" ")
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+    .join(" ");
+  return `Dr. ${capitalized}`;
+}
+
+/**
  * Retrieves all prescriptions authored by the authenticated doctor.
  * Strictly filters by doctorId at the query level.
  */
@@ -160,6 +173,19 @@ export async function getDoctorPrescriptionsList(
   const prescriptions = await prisma.prescription.findMany({
     where: whereClause,
     include: {
+      doctor: {
+        select: {
+          id: true,
+          specialization: true,
+          licenseNumber: true,
+          phone: true,
+          user: {
+            select: {
+              email: true,
+            },
+          },
+        },
+      },
       patient: {
         select: {
           id: true,
@@ -198,18 +224,47 @@ export async function getDoctorPrescriptionsList(
     orderBy: { createdAt: "desc" },
   });
 
+  const formattedPrescriptions = prescriptions.map((rx) => ({
+    ...rx,
+    doctor: rx.doctor
+      ? {
+          id: rx.doctor.id,
+          name: formatDoctorDisplayName(rx.doctor.user?.email),
+          specialization: rx.doctor.specialization,
+          licenseNumber: rx.doctor.licenseNumber,
+          phone: rx.doctor.phone,
+        }
+      : null,
+  }));
+
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  const doctorName = formatDoctorDisplayName(user?.email);
+
   return {
     doctor: {
       id: doctorProfile.id,
+      name: doctorName,
       specialization: doctorProfile.specialization,
+      licenseNumber: doctorProfile.licenseNumber,
+      phone: doctorProfile.phone,
     },
-    prescriptions,
+    prescriptions: formattedPrescriptions,
   };
 }
 
 /**
  * Retrieves full details for a single prescription authored by the authenticated doctor.
  * Strictly verifies ownership; returns 404 for missing records and 403 for other doctors' records.
+ * Returns all allowed fields from the approved PRD:
+ * - Prescription ID
+ * - Patient information (name, age, gender, contactInfo)
+ * - Doctor information (name, specialization, licenseNumber, phone)
+ * - Diagnosis
+ * - Medicines (name, genericName, dosage, frequency, duration, stockStatus)
+ * - Prescription document reference (documentRef)
+ * - Status (PENDING, FILLED, CANNOT_FILL)
+ * - Created timestamp (createdAt)
+ * - Fulfillment timestamp when available (filledAt / fill.filledAt)
  */
 export async function getDoctorPrescriptionDetail(
   userId: string,
@@ -278,7 +333,7 @@ export async function getDoctorPrescriptionDetail(
     return { error: "Prescription not found.", statusCode: 404 as const };
   }
 
-  // Enforce doctor ownership
+  // Enforce doctor ownership: reject access to another clinician's prescription
   if (prescription.doctorId !== doctorProfile.id) {
     return {
       error: "Access denied. You can only access prescriptions authored by you.",
@@ -286,8 +341,21 @@ export async function getDoctorPrescriptionDetail(
     };
   }
 
+  const formattedDoctor = prescription.doctor
+    ? {
+        id: prescription.doctor.id,
+        name: formatDoctorDisplayName(prescription.doctor.user?.email),
+        specialization: prescription.doctor.specialization,
+        licenseNumber: prescription.doctor.licenseNumber,
+        phone: prescription.doctor.phone,
+      }
+    : null;
+
   return {
-    prescription,
+    prescription: {
+      ...prescription,
+      doctor: formattedDoctor,
+    },
   };
 }
 

@@ -164,7 +164,11 @@ export default function DoctorDashboardPage() {
             Refresh
           </Button>
           <Link href="/doctor/prescriptions/new">
-            <Button variant="primary" size="sm" className="flex items-center gap-1.5 shadow-sm">
+            <Button
+              variant="primary"
+              size="sm"
+              className="flex items-center gap-1.5 shadow-sm"
+            >
               <svg
                 className="w-4 h-4 text-white"
                 fill="none"

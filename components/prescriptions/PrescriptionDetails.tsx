@@ -28,6 +28,7 @@ export interface PrescriptionPatientInfo {
 
 export interface PrescriptionDoctorInfo {
   id?: string;
+  name?: string;
   specialization?: string;
   licenseNumber?: string;
   phone?: string;
@@ -77,14 +78,16 @@ export function PrescriptionDetails({
   onClose,
   isModal = false,
 }: PrescriptionDetailsProps) {
-  // Pharmacy must NOT see diagnosis per PRD privacy requirements
   const canViewDiagnosis = viewerRole !== 'PHARMACY' && Boolean(prescription.diagnosis);
 
   const formatDate = (dateString?: string | Date | null) => {
-    if (!dateString) return '—';
+    if (!dateString) {
+      return '—';
+    }
+
     try {
-      const d = new Date(dateString);
-      return d.toLocaleDateString('en-US', {
+      const value = new Date(dateString);
+      return value.toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
@@ -109,76 +112,57 @@ export function PrescriptionDetails({
   };
 
   const doctorName =
+    prescription.doctor?.name ||
     prescription.doctor?.user?.name ||
     (prescription.doctor?.user?.email ? prescription.doctor.user.email.split('@')[0] : 'Doctor');
 
   const documentReference = prescription.documentRef?.trim();
-  const documentHref = documentReference ? (documentReference.startsWith('http://') || documentReference.startsWith('https://') ? documentReference : undefined) : undefined;
+  const documentHref = documentReference
+    ? documentReference.startsWith('http://') || documentReference.startsWith('https://')
+      ? documentReference
+      : undefined
+    : undefined;
 
   const content = (
     <div className="space-y-6">
-      {/* Header Info */}
       <div className="border-b border-gray-100 pb-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-blue-600">
-              Prescription Order
+              Prescription Details
             </span>
-            <h3 className="text-xl font-bold text-gray-900 font-mono">
-              #{prescription.id}
-            </h3>
+            <h3 className="text-xl font-bold text-gray-900 font-mono">#{prescription.id}</h3>
           </div>
-          <div className="flex items-center gap-2">
-            {getStatusBadge(prescription.status)}
-          </div>
+          <div className="flex items-center gap-2">{getStatusBadge(prescription.status)}</div>
         </div>
-        <p className="mt-1 text-xs text-gray-500">
-          Authored on {formatDate(prescription.createdAt)}
-        </p>
+        <p className="mt-1 text-xs text-gray-500">Created: {formatDate(prescription.createdAt)}</p>
       </div>
 
-      {/* Patient & Clinician Details */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="rounded-lg bg-gray-50 p-3.5 border border-gray-100">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
-            Patient Information
+            Patient
           </p>
-          <p className="text-sm font-bold text-gray-900">
-            {prescription.patient?.name || 'Patient Record'}
-          </p>
+          <p className="text-sm font-bold text-gray-900">{prescription.patient?.name || 'Patient record'}</p>
           {(prescription.patient?.age || prescription.patient?.gender) && (
             <p className="text-xs text-gray-600">
               {[
-                prescription.patient.age ? `${prescription.patient.age} yrs` : null,
-                prescription.patient.gender,
+                prescription.patient?.age ? `${prescription.patient.age} yrs` : null,
+                prescription.patient?.gender,
               ]
                 .filter(Boolean)
                 .join(' • ')}
             </p>
           )}
-          {prescription.patient?.contactInfo && (
-            <p className="text-xs text-gray-500 mt-1">
-              Contact: {prescription.patient.contactInfo}
-            </p>
-          )}
         </div>
 
         <div className="rounded-lg bg-gray-50 p-3.5 border border-gray-100">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
-            Authoring Clinician
+            Doctor
           </p>
-          <p className="text-sm font-bold text-gray-900">
-            {doctorName}
-          </p>
+          <p className="text-sm font-bold text-gray-900">{doctorName}</p>
           {prescription.doctor?.specialization && (
-            <p className="text-xs text-gray-600">
-              Specialization: {prescription.doctor.specialization}
-            </p>
-          )}
-          {prescription.doctor?.licenseNumber && (
-            <p className="text-xs text-gray-500 mt-1 font-mono">
-              License: {prescription.doctor.licenseNumber}
-            </p>
+            <p className="text-xs text-gray-600">Specialization: {prescription.doctor.specialization}</p>
           )}
         </div>
       </div>
@@ -194,21 +178,52 @@ export function PrescriptionDetails({
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
             Fulfillment Timestamp
           </p>
-          <p className="text-sm font-medium text-gray-900">{prescription.fill?.filledAt ? formatDate(prescription.fill.filledAt) : 'Not yet fulfilled'}</p>
+          <p className="text-sm font-medium text-gray-900">
+            {prescription.fill?.filledAt ? formatDate(prescription.fill.filledAt) : 'Not yet fulfilled'}
+          </p>
         </div>
       </div>
 
-      {/* Clinical Diagnosis (Strictly redacted for Pharmacy) */}
       {canViewDiagnosis && (
         <div className="rounded-lg bg-blue-50/60 p-3.5 border border-blue-100/80">
           <p className="text-xs font-semibold text-blue-900 uppercase tracking-wider mb-1">
-            Clinical Diagnosis
+            Diagnosis
           </p>
           <p className="text-sm text-blue-950 whitespace-pre-wrap font-medium">
-            {prescription.diagnosis}
+            {prescription.diagnosis || 'No diagnosis recorded.'}
           </p>
         </div>
       )}
+
+      <div>
+        <h4 className="mb-3 text-sm font-bold text-gray-900 uppercase tracking-wider">
+          Medicines ({prescription.prescriptionMedicines.length})
+        </h4>
+        <div className="space-y-2.5">
+          {prescription.prescriptionMedicines.length === 0 ? (
+            <p className="text-sm text-gray-500">No medicines recorded for this prescription.</p>
+          ) : (
+            prescription.prescriptionMedicines.map((item, idx) => (
+              <div
+                key={item.id || idx}
+                className="rounded-lg border border-gray-200 bg-white p-3"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-bold text-gray-900">{item.medicine.name}</span>
+                  {item.medicine.genericName && (
+                    <span className="text-xs text-gray-500 italic">({item.medicine.genericName})</span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-gray-600">
+                  <span className="font-semibold text-gray-700">Dosage:</span> {item.dosage} •{' '}
+                  <span className="font-semibold text-gray-700">Frequency:</span> {item.frequency} •{' '}
+                  <span className="font-semibold text-gray-700">Duration:</span> {item.duration}
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
 
       <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3.5">
         <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
@@ -216,7 +231,12 @@ export function PrescriptionDetails({
         </p>
         {documentReference ? (
           documentHref ? (
-            <a href={documentHref} target="_blank" rel="noreferrer" className="inline-flex text-sm font-medium text-blue-700 underline underline-offset-2">
+            <a
+              href={documentHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex text-sm font-medium text-blue-700 underline underline-offset-2"
+            >
               {documentReference}
             </a>
           ) : (
@@ -226,77 +246,6 @@ export function PrescriptionDetails({
           <p className="text-sm text-gray-500">No document reference attached to this prescription.</p>
         )}
       </div>
-
-      {/* Itemized Medications */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-            Prescribed Medications ({prescription.prescriptionMedicines.length})
-          </h4>
-        </div>
-        <div className="space-y-2.5">
-          {prescription.prescriptionMedicines.map((item, idx) => (
-            <div
-              key={item.id || idx}
-              className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-gray-200 bg-white hover:border-gray-300 transition-colors gap-2"
-            >
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-gray-900">
-                    {item.medicine.name}
-                  </span>
-                  {item.medicine.genericName && (
-                    <span className="text-xs text-gray-500 italic">
-                      ({item.medicine.genericName})
-                    </span>
-                  )}
-                  {item.medicine.stockStatus !== undefined && (
-                    <Badge variant={item.medicine.stockStatus ? 'success' : 'destructive'}>
-                      {item.medicine.stockStatus ? 'In Stock' : 'Out of Stock'}
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-xs text-gray-600 mt-0.5">
-                  <span className="font-semibold text-gray-700">Dosage:</span> {item.dosage} •{' '}
-                  <span className="font-semibold text-gray-700">Frequency:</span> {item.frequency} •{' '}
-                  <span className="font-semibold text-gray-700">Duration:</span> {item.duration}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Fulfillment Status & Notes */}
-      {prescription.fill ? (
-        <div className="rounded-lg bg-emerald-50/70 p-3.5 border border-emerald-100">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-emerald-900 uppercase tracking-wider">
-              Dispensing & Fulfillment Record
-            </p>
-            <Badge variant="success">Dispensed</Badge>
-          </div>
-          <p className="text-xs text-emerald-800 mt-1">
-            Dispensed on: {formatDate(prescription.fill.filledAt)}
-          </p>
-          {prescription.fill.pharmacy && (
-            <p className="text-xs text-emerald-800 mt-0.5">
-              Dispensing Pharmacy: {prescription.fill.pharmacy.pharmacyName}
-              {prescription.fill.pharmacy.phone && ` (${prescription.fill.pharmacy.phone})`}
-            </p>
-          )}
-          {prescription.fill.notes && (
-            <p className="text-xs text-emerald-900 mt-2 p-2 bg-white/80 rounded border border-emerald-200/50">
-              <span className="font-semibold">Pharmacist Notes:</span> {prescription.fill.notes}
-            </p>
-          )}
-        </div>
-      ) : (
-        <div className="rounded-lg bg-amber-50/60 p-3 border border-amber-100 flex items-center justify-between text-xs text-amber-800">
-          <span>Awaiting pharmacy dispensing and fulfillment review.</span>
-          <Badge variant="warning">Pending Queue</Badge>
-        </div>
-      )}
     </div>
   );
 
@@ -305,9 +254,7 @@ export function PrescriptionDetails({
       <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
         <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
           <div className="sticky top-0 bg-white/95 backdrop-blur px-6 py-4 border-b border-gray-200 flex items-center justify-between z-10">
-            <h2 className="text-lg font-bold text-gray-900">
-              Prescription Order Overview
-            </h2>
+            <h2 className="text-lg font-bold text-gray-900">Prescription Overview</h2>
             {onClose && (
               <button
                 onClick={onClose}
@@ -336,9 +283,10 @@ export function PrescriptionDetails({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Prescription Order Overview</CardTitle>
+        <CardTitle>Prescription Overview</CardTitle>
       </CardHeader>
       <CardContent>{content}</CardContent>
     </Card>
   );
 }
+
