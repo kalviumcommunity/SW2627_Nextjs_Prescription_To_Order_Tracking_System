@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
 
 interface Patient {
   id: string;
@@ -29,14 +28,12 @@ interface MedicineRow {
   duration: string;
 }
 
+type RowValidationErrors = Partial<Record<'medicineId' | 'dosage' | 'frequency' | 'duration', string>>;
+
 interface FormErrors {
   patientId?: string;
   diagnosis?: string;
   medicines?: string;
-  medicineId?: string;
-  dosage?: string;
-  frequency?: string;
-  duration?: string;
   date?: string;
 }
 
@@ -57,10 +54,10 @@ export default function NewPrescriptionPage() {
   const [prescriptionDate, setPrescriptionDate] = useState('');
   const [rows, setRows] = useState<MedicineRow[]>([emptyMedicineRow()]);
   const [loadingRoster, setLoadingRoster] = useState(true);
-  const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [validationErrors, setValidationErrors] = useState<FormErrors>({});
+  const [rowErrors, setRowErrors] = useState<Record<string, RowValidationErrors>>({});
 
   useEffect(() => {
     const fetchRoster = async () => {
@@ -100,8 +97,6 @@ export default function NewPrescriptionPage() {
           type: 'error',
           text: error instanceof Error ? error.message : 'Unable to load the medicine catalog.',
         });
-      } finally {
-        setLoadingCatalog(false);
       }
     };
 
@@ -114,8 +109,9 @@ export default function NewPrescriptionPage() {
     [patientId, patients]
   );
 
-  const validateRow = (row: MedicineRow, idx: number): FormErrors => {
-    const errors: FormErrors = {};
+  const validateRow = (row: MedicineRow, idx: number): RowValidationErrors => {
+    const errors: RowValidationErrors = {};
+
     if (!row.medicineId.trim()) {
       errors.medicineId = `Medicine ${idx + 1} is required.`;
     }
@@ -128,11 +124,13 @@ export default function NewPrescriptionPage() {
     if (!row.duration.trim()) {
       errors.duration = `Duration for medicine ${idx + 1} is required.`;
     }
+
     return errors;
   };
 
   const validateForm = (): boolean => {
     const nextErrors: FormErrors = {};
+    const nextRowErrors: Record<string, RowValidationErrors> = {};
 
     if (!patientId.trim()) {
       nextErrors.patientId = 'Select a patient from your roster.';
@@ -151,12 +149,17 @@ export default function NewPrescriptionPage() {
     }
 
     rows.forEach((row, idx) => {
-      const rowErrors = validateRow(row, idx);
-      if (Object.keys(rowErrors).length > 0) {
-        Object.assign(nextErrors, rowErrors);
+      const rowValidation = validateRow(row, idx);
+      if (Object.keys(rowValidation).length > 0) {
+        nextRowErrors[row.id] = rowValidation;
       }
     });
 
+    if (Object.keys(nextRowErrors).length > 0) {
+      nextErrors.medicines = 'Please complete all medicine rows before submitting.';
+    }
+
+    setRowErrors(nextRowErrors);
     setValidationErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
@@ -165,9 +168,24 @@ export default function NewPrescriptionPage() {
     setRows((current) =>
       current.map((row) => (row.id === id ? { ...row, [field]: value } : row))
     );
+
+    setRowErrors((current) => {
+      const next = { ...current };
+      const rowErrors = next[id];
+      if (!rowErrors) return next;
+
+      delete rowErrors[field as keyof RowValidationErrors];
+      if (Object.keys(rowErrors).length === 0) {
+        delete next[id];
+      }
+      return next;
+    });
+
     setValidationErrors((current) => {
       const next = { ...current };
-      delete next[field];
+      if (field === 'medicineId' || field === 'dosage' || field === 'frequency' || field === 'duration') {
+        delete next.medicines;
+      }
       return next;
     });
   };
@@ -179,9 +197,16 @@ export default function NewPrescriptionPage() {
   const removeMedicineRow = (id: string) => {
     if (rows.length === 1) {
       setRows([emptyMedicineRow()]);
+      setRowErrors({});
       return;
     }
+
     setRows((current) => current.filter((row) => row.id !== id));
+    setRowErrors((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -220,7 +245,15 @@ export default function NewPrescriptionPage() {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data.error || 'Prescription could not be created.');
+        if (response.status === 401 || response.status === 403) {
+          throw new Error(data.error || 'You are not authorized to create prescriptions.');
+        }
+
+        if (response.status >= 400 && response.status < 500) {
+          throw new Error(data.error || 'The prescription could not be created because the request is invalid.');
+        }
+
+        throw new Error(data.error || 'The server encountered an issue while creating the prescription.');
       }
 
       setSubmitMessage({
@@ -242,92 +275,6 @@ export default function NewPrescriptionPage() {
       setSubmitting(false);
     }
   };
-
-  const medicineRows = rows.map((row, idx) => {
-    const rowErrors = {
-      medicineId: validationErrors.medicineId && idx === rows.findIndex((item) => item.id === row.id) ? validationErrors.medicineId : undefined,
-      dosage: validationErrors.dosage && idx === rows.findIndex((item) => item.id === row.id) ? validationErrors.dosage : undefined,
-      frequency: validationErrors.frequency && idx === rows.findIndex((item) => item.id === row.id) ? validationErrors.frequency : undefined,
-      duration: validationErrors.duration && idx === rows.findIndex((item) => item.id === row.id) ? validationErrors.duration : undefined,
-    };
-
-    return (
-      <div key={row.id} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-700">Medicine {idx + 1}</h3>
-          {rows.length > 1 && (
-            <button
-              type="button"
-              onClick={() => removeMedicineRow(row.id)}
-              className="text-sm text-red-600 hover:text-red-700"
-            >
-              Remove
-            </button>
-          )}
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700">Medicine</label>
-            <select
-              value={row.medicineId}
-              onChange={(event) => updateRow(row.id, 'medicineId', event.target.value)}
-              className={`w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ${
-                rowErrors.medicineId ? 'border-red-500' : ''
-              }`}
-            >
-              <option value="">Select medicine</option>
-              {medicines.map((medicine) => (
-                <option key={medicine.id} value={medicine.id}>
-                  {medicine.name} {medicine.genericName ? `(${medicine.genericName})` : ''}
-                </option>
-              ))}
-            </select>
-            {rowErrors.medicineId && <p className="text-xs text-red-500">{rowErrors.medicineId}</p>}
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700">Dosage</label>
-            <input
-              value={row.dosage}
-              onChange={(event) => updateRow(row.id, 'dosage', event.target.value)}
-              placeholder="e.g. 500mg"
-              className={`w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ${
-                rowErrors.dosage ? 'border-red-500' : ''
-              }`}
-            />
-            {rowErrors.dosage && <p className="text-xs text-red-500">{rowErrors.dosage}</p>}
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700">Frequency</label>
-            <input
-              value={row.frequency}
-              onChange={(event) => updateRow(row.id, 'frequency', event.target.value)}
-              placeholder="e.g. Twice daily"
-              className={`w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ${
-                rowErrors.frequency ? 'border-red-500' : ''
-              }`}
-            />
-            {rowErrors.frequency && <p className="text-xs text-red-500">{rowErrors.frequency}</p>}
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700">Duration</label>
-            <input
-              value={row.duration}
-              onChange={(event) => updateRow(row.id, 'duration', event.target.value)}
-              placeholder="e.g. 7 days"
-              className={`w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ${
-                rowErrors.duration ? 'border-red-500' : ''
-              }`}
-            />
-            {rowErrors.duration && <p className="text-xs text-red-500">{rowErrors.duration}</p>}
-          </div>
-        </div>
-      </div>
-    );
-  });
 
   return (
     <div className="space-y-6">
@@ -412,8 +359,88 @@ export default function NewPrescriptionPage() {
             <CardTitle>3. Medicines</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {medicineRows}
-            <div className="flex justify-between gap-3 pt-2">
+            {rows.map((row, idx) => {
+              const rowIssues = rowErrors[row.id] ?? {};
+
+              return (
+                <div key={row.id} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-700">Medicine {idx + 1}</h3>
+                    {rows.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeMedicineRow(row.id)}
+                        className="text-sm text-red-600 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700">Medicine</label>
+                      <select
+                        value={row.medicineId}
+                        onChange={(event) => updateRow(row.id, 'medicineId', event.target.value)}
+                        className={`w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ${
+                          rowIssues.medicineId ? 'border-red-500' : ''
+                        }`}
+                      >
+                        <option value="">Select medicine</option>
+                        {medicines.map((medicine) => (
+                          <option key={medicine.id} value={medicine.id}>
+                            {medicine.name} {medicine.genericName ? `(${medicine.genericName})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      {rowIssues.medicineId && <p className="text-xs text-red-500">{rowIssues.medicineId}</p>}
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700">Dosage</label>
+                      <input
+                        value={row.dosage}
+                        onChange={(event) => updateRow(row.id, 'dosage', event.target.value)}
+                        placeholder="e.g. 500mg"
+                        className={`w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ${
+                          rowIssues.dosage ? 'border-red-500' : ''
+                        }`}
+                      />
+                      {rowIssues.dosage && <p className="text-xs text-red-500">{rowIssues.dosage}</p>}
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700">Frequency</label>
+                      <input
+                        value={row.frequency}
+                        onChange={(event) => updateRow(row.id, 'frequency', event.target.value)}
+                        placeholder="e.g. Twice daily"
+                        className={`w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ${
+                          rowIssues.frequency ? 'border-red-500' : ''
+                        }`}
+                      />
+                      {rowIssues.frequency && <p className="text-xs text-red-500">{rowIssues.frequency}</p>}
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700">Duration</label>
+                      <input
+                        value={row.duration}
+                        onChange={(event) => updateRow(row.id, 'duration', event.target.value)}
+                        placeholder="e.g. 7 days"
+                        className={`w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ${
+                          rowIssues.duration ? 'border-red-500' : ''
+                        }`}
+                      />
+                      {rowIssues.duration && <p className="text-xs text-red-500">{rowIssues.duration}</p>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            <div className="flex flex-col gap-2 pt-2">
               <Button type="button" variant="secondary" size="sm" onClick={addMedicineRow}>
                 Add Medicine
               </Button>
