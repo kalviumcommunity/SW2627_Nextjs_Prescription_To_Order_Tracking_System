@@ -219,7 +219,7 @@ async function runDay9TestSuite() {
     originalName: "large-scan.pdf",
     mimeType: "application/pdf",
   });
-  assert(!oversizedCheck.valid && oversizedCheck.error?.includes("File size exceeds"), "Oversized file (>5MB) rejected correctly");
+  assert(Boolean(!oversizedCheck.valid && oversizedCheck.error?.includes("File size exceeds")), "Oversized file (>5MB) rejected correctly");
 
   // 5d. Disallowed file type validation (.exe / script)
   const invalidMimeCheck = validateDocumentFile({
@@ -228,7 +228,7 @@ async function runDay9TestSuite() {
     originalName: "malware.exe",
     mimeType: "application/x-msdownload",
   });
-  assert(!invalidMimeCheck.valid && invalidMimeCheck.error?.includes("Invalid file type"), "Disallowed file type (.exe) rejected correctly");
+  assert(Boolean(!invalidMimeCheck.valid && invalidMimeCheck.error?.includes("Invalid file type")), "Disallowed file type (.exe) rejected correctly");
 
   // 5e. Valid PDF upload through storageService
   const samplePdfBuffer = Buffer.from("%PDF-1.4 sample clinical prescription document data");

@@ -563,3 +563,248 @@ export async function createDoctorPrescription(
     };
   }
 }
+
+/**
+ * Computes dynamic, derived clinical performance analytics for an authenticated doctor.
+ * All metrics are calculated directly from PostgreSQL records using Prisma aggregations.
+ * Strictly scopes data to the authenticated clinician's doctorProfile.id.
+ */
+export async function getDoctorAnalytics(userId: string) {
+  const doctorProfile = await getDoctorProfileByUserId(userId);
+  if (!doctorProfile) {
+    return { error: "Doctor profile not found.", statusCode: 404 as const };
+  }
+
+  const doctorId = doctorProfile.id;
+
+  // 1. Status breakdown and overall counts using database-level GROUP BY
+  const [
+    statusGroups,
+    prescribedGroups,
+    filledGroups,
+    pendingGroups,
+    cannotFillGroups,
+    timelineItems,
+  ] = await Promise.all([
+    prisma.prescription.groupBy({
+      by: ["status"],
+      where: { doctorId },
+      _count: { id: true },
+    }),
+    prisma.prescriptionMedicine.groupBy({
+      by: ["medicineId"],
+      where: {
+        prescription: { doctorId },
+      },
+      _count: { id: true },
+    }),
+    prisma.prescriptionMedicine.groupBy({
+      by: ["medicineId"],
+      where: {
+        prescription: { doctorId, status: PrescriptionStatus.FILLED },
+      },
+      _count: { id: true },
+    }),
+    prisma.prescriptionMedicine.groupBy({
+      by: ["medicineId"],
+      where: {
+        prescription: { doctorId, status: PrescriptionStatus.PENDING },
+      },
+      _count: { id: true },
+    }),
+    prisma.prescriptionMedicine.groupBy({
+      by: ["medicineId"],
+      where: {
+        prescription: { doctorId, status: PrescriptionStatus.CANNOT_FILL },
+      },
+      _count: { id: true },
+    }),
+    prisma.prescription.findMany({
+      where: { doctorId },
+      select: {
+        id: true,
+        status: true,
+        createdAt: true,
+        filledAt: true,
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
+
+  // 2. Compute overall status counts
+  let filledPrescriptions = 0;
+  let pendingPrescriptions = 0;
+  let cannotFillPrescriptions = 0;
+
+  for (const group of statusGroups) {
+    if (group.status === PrescriptionStatus.FILLED) {
+      filledPrescriptions = group._count.id;
+    } else if (group.status === PrescriptionStatus.PENDING) {
+      pendingPrescriptions = group._count.id;
+    } else if (group.status === PrescriptionStatus.CANNOT_FILL) {
+      cannotFillPrescriptions = group._count.id;
+    }
+  }
+
+  const totalPrescriptions = filledPrescriptions + pendingPrescriptions + cannotFillPrescriptions;
+  const overallFillRate =
+    totalPrescriptions > 0
+      ? Number(((filledPrescriptions / totalPrescriptions) * 100).toFixed(1))
+      : 0;
+
+  const statusBreakdown = [
+    {
+      status: PrescriptionStatus.FILLED,
+      count: filledPrescriptions,
+      percentage:
+        totalPrescriptions > 0
+          ? Number(((filledPrescriptions / totalPrescriptions) * 100).toFixed(1))
+          : 0,
+    },
+    {
+      status: PrescriptionStatus.PENDING,
+      count: pendingPrescriptions,
+      percentage:
+        totalPrescriptions > 0
+          ? Number(((pendingPrescriptions / totalPrescriptions) * 100).toFixed(1))
+          : 0,
+    },
+    {
+      status: PrescriptionStatus.CANNOT_FILL,
+      count: cannotFillPrescriptions,
+      percentage:
+        totalPrescriptions > 0
+          ? Number(((cannotFillPrescriptions / totalPrescriptions) * 100).toFixed(1))
+          : 0,
+    },
+  ];
+
+  // 3. Map medicine-wise aggregations
+  const prescribedMap = new Map<string, number>();
+  for (const g of prescribedGroups) prescribedMap.set(g.medicineId, g._count.id);
+
+  const filledMap = new Map<string, number>();
+  for (const g of filledGroups) filledMap.set(g.medicineId, g._count.id);
+
+  const pendingMap = new Map<string, number>();
+  for (const g of pendingGroups) pendingMap.set(g.medicineId, g._count.id);
+
+  const cannotFillMap = new Map<string, number>();
+  for (const g of cannotFillGroups) cannotFillMap.set(g.medicineId, g._count.id);
+
+  const medicineIds = Array.from(prescribedMap.keys());
+  const medicines =
+    medicineIds.length > 0
+      ? await prisma.medicine.findMany({
+          where: { id: { in: medicineIds } },
+          select: { id: true, name: true, genericName: true, stockStatus: true },
+        })
+      : [];
+
+  const medicineInfoMap = new Map(medicines.map((m) => [m.id, m]));
+
+  const medicineFillRates = medicineIds.map((medId) => {
+    const med = medicineInfoMap.get(medId);
+    const prescribed = prescribedMap.get(medId) ?? 0;
+    const filled = filledMap.get(medId) ?? 0;
+    const pending = pendingMap.get(medId) ?? 0;
+    const cannotFill = cannotFillMap.get(medId) ?? 0;
+    const fillRate = prescribed > 0 ? Number(((filled / prescribed) * 100).toFixed(1)) : 0;
+
+    return {
+      medicineId: medId,
+      name: med?.name ?? "Unknown Medicine",
+      genericName: med?.genericName ?? "",
+      stockStatus: med?.stockStatus ?? true,
+      prescribed,
+      filled,
+      pending,
+      cannotFill,
+      fillRate,
+    };
+  });
+
+  // Sort by prescribed count descending, then name ascending
+  medicineFillRates.sort((a, b) => b.prescribed - a.prescribed || a.name.localeCompare(b.name));
+
+  // Top 5 most frequently prescribed medicines
+  const topMedicines = medicineFillRates.slice(0, 5).map((m) => ({
+    medicineId: m.medicineId,
+    name: m.name,
+    genericName: m.genericName,
+    stockStatus: m.stockStatus,
+    prescriptionsCount: m.prescribed,
+    percentageOfTotal:
+      totalPrescriptions > 0
+        ? Number(((m.prescribed / totalPrescriptions) * 100).toFixed(1))
+        : 0,
+    fillRate: m.fillRate,
+  }));
+
+  // 4. Group timeline trend by period (YYYY-MM)
+  const monthNames = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
+
+  const periodMap = new Map<
+    string,
+    { total: number; filled: number; pending: number; cannotFill: number; date: Date }
+  >();
+
+  for (const rx of timelineItems) {
+    const periodKey = rx.createdAt.toISOString().slice(0, 7); // e.g. "2026-08"
+    const existing = periodMap.get(periodKey) || {
+      total: 0,
+      filled: 0,
+      pending: 0,
+      cannotFill: 0,
+      date: rx.createdAt,
+    };
+
+    existing.total += 1;
+    if (rx.status === PrescriptionStatus.FILLED) existing.filled += 1;
+    else if (rx.status === PrescriptionStatus.PENDING) existing.pending += 1;
+    else if (rx.status === PrescriptionStatus.CANNOT_FILL) existing.cannotFill += 1;
+
+    periodMap.set(periodKey, existing);
+  }
+
+  const trend = Array.from(periodMap.entries()).map(([period, data]) => {
+    const [yearStr, monthStr] = period.split("-");
+    const monthIndex = parseInt(monthStr, 10) - 1;
+    const label = `${monthNames[monthIndex] || monthStr} ${yearStr}`;
+    const fillRate = data.total > 0 ? Number(((data.filled / data.total) * 100).toFixed(1)) : 0;
+
+    return {
+      period,
+      label,
+      total: data.total,
+      filled: data.filled,
+      pending: data.pending,
+      cannotFill: data.cannotFill,
+      fillRate,
+    };
+  });
+
+  return {
+    doctor: {
+      id: doctorProfile.id,
+      specialization: doctorProfile.specialization,
+      licenseNumber: doctorProfile.licenseNumber,
+      phone: doctorProfile.phone,
+    },
+    summary: {
+      totalPrescriptions,
+      filledPrescriptions,
+      pendingPrescriptions,
+      cannotFillPrescriptions,
+      overallFillRate,
+    },
+    statusBreakdown,
+    medicineFillRates,
+    topMedicines,
+    trend,
+  };
+}
+
