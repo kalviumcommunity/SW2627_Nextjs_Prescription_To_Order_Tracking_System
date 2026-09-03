@@ -1,0 +1,52 @@
+{
+  "name": "sw2627_nextjs_prescription_to_order_tracking_system",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test:auth": "tsx -r dotenv/config scripts/test-auth.ts",
+    "test:authz": "tsx -r dotenv/config scripts/test-authorization.ts",
+    "test:doctor": "tsx -r dotenv/config scripts/test-doctor-api.ts",
+    "test:doctor:create": "tsx -r dotenv/config scripts/test-doctor-create-prescription.ts",
+    "test:doctor:analytics": "tsx -r dotenv/config scripts/test-doctor-analytics.ts",
+    "test:pharmacy:fulfillment": "tsx -r dotenv/config scripts/test-pharmacy-fulfillment.ts",
+    "test:doctor-integration": "tsx -r dotenv/config scripts/test-doctor-integration.ts",
+    "test:nav": "tsx -r dotenv/config scripts/test-protected-navigation.ts",
+    "test:day9": "tsx -r dotenv/config scripts/test-day9-doctor-detail-storage.ts",
+    "db:generate": "prisma generate",
+    "db:validate": "prisma validate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
+    "db:reset": "prisma migrate reset",
+    "db:studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.12.0",
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
+    "next": "14.2.35",
+    "next-auth": "^4.24.15",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.5.4",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.35",
+    "postcss": "^8",
+    "prisma": "^6.4.1",
+    "tailwindcss": "^3.4.1",
+    "tsx": "^4.23.12",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f6fbfa;
+  color: #16324f;
+  font-family: "Trebuchet MS", sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+.auth-pattern {
+  background-color: #087e8b;
+  background-image: linear-gradient(135deg, rgba(255,255,255,.08) 25%, transparent 25%), linear-gradient(315deg, rgba(242,95,92,.22) 25%, transparent 25%);
+  background-position: 0 0, 18px 18px;
+  background-size: 36px 36px;
+}
