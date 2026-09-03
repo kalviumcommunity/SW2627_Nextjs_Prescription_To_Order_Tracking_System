@@ -17,7 +17,7 @@ export const DOCTOR_NAV_ITEMS: SidebarItem[] = [
 
 export const PHARMACY_NAV_ITEMS: SidebarItem[] = [
   { name: "Dashboard", href: "/pharmacy/dashboard" },
-  { name: "Prescription Queue", href: "/pharmacy/queue" },
+  { name: "Prescription Queue", href: "/pharmacy/prescriptions" },
   { name: "Filled History", href: "/pharmacy/history" },
   { name: "Analytics", href: "/pharmacy/analytics" },
   { name: "Profile", href: "/pharmacy/profile" },
