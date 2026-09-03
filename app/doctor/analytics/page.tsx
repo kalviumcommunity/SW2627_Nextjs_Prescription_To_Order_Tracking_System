@@ -56,6 +56,18 @@ interface AnalyticsData {
   }>;
 }
 
+function getFillRatePresentation(fillRate: number) {
+  if (fillRate === 0) {
+    return { text: 'text-rose-600', bar: 'bg-rose-500', label: 'No fills', variant: 'destructive' as const };
+  }
+
+  if (fillRate === 100) {
+    return { text: 'text-emerald-600', bar: 'bg-emerald-500', label: 'Fully filled', variant: 'success' as const };
+  }
+
+  return { text: 'text-amber-600', bar: 'bg-amber-500', label: 'Partial', variant: 'warning' as const };
+}
+
 export default function DoctorAnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -65,7 +77,7 @@ export default function DoctorAnalyticsPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch('/api/doctor/analytics');
+      const res = await fetch('/api/doctor/analytics', { cache: 'no-store' });
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
         throw new Error(errJson.error || `Failed to fetch analytics (HTTP ${res.status})`);
@@ -121,7 +133,14 @@ export default function DoctorAnalyticsPage() {
 
   if (!data) return null;
 
-  const { summary, statusBreakdown, medicineFillRates, topMedicines, trend, doctor } = data;
+  const {
+    summary,
+    statusBreakdown = [],
+    medicineFillRates = [],
+    topMedicines = [],
+    trend = [],
+    doctor,
+  } = data;
   const hasPrescriptions = summary.totalPrescriptions > 0;
 
   return (
@@ -149,7 +168,7 @@ export default function DoctorAnalyticsPage() {
       </div>
 
       {/* KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-l-4 border-l-blue-500 shadow-sm">
           <CardContent className="p-5">
             <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -165,14 +184,14 @@ export default function DoctorAnalyticsPage() {
         <Card className="border-l-4 border-l-emerald-500 shadow-sm">
           <CardContent className="p-5">
             <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Fulfillment Rate
+              Fill Rate
             </div>
             <div className="text-3xl font-extrabold text-emerald-600 mt-2">
               {summary.overallFillRate}%
             </div>
-            <div className="text-xs text-emerald-700 mt-1">
-              {summary.filledPrescriptions} of {summary.totalPrescriptions} filled
-            </div>
+            <Badge variant={getFillRatePresentation(summary.overallFillRate).variant}>
+              {getFillRatePresentation(summary.overallFillRate).label}
+            </Badge>
           </CardContent>
         </Card>
 
@@ -200,17 +219,6 @@ export default function DoctorAnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-rose-500 shadow-sm">
-          <CardContent className="p-5">
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Cannot Fill
-            </div>
-            <div className="text-3xl font-extrabold text-rose-600 mt-2">
-              {summary.cannotFillPrescriptions}
-            </div>
-            <div className="text-xs text-gray-500 mt-1">Stock / clinical issues</div>
-          </CardContent>
-        </Card>
       </div>
 
       {!hasPrescriptions ? (
@@ -347,12 +355,7 @@ export default function DoctorAnalyticsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {medicineFillRates.map((med) => {
-                    const fillRateColor =
-                      med.fillRate >= 80
-                        ? 'text-emerald-600 bg-emerald-500'
-                        : med.fillRate >= 50
-                        ? 'text-amber-600 bg-amber-500'
-                        : 'text-rose-600 bg-rose-500';
+                    const fillRatePresentation = getFillRatePresentation(med.fillRate);
 
                     return (
                       <tr key={med.medicineId} className="hover:bg-gray-50/60 transition-colors">
@@ -381,13 +384,16 @@ export default function DoctorAnalyticsPage() {
                           <div className="inline-flex items-center gap-2">
                             <div className="w-16 bg-gray-100 rounded-full h-1.5 overflow-hidden">
                               <div
-                                className={`h-1.5 rounded-full ${fillRateColor.split(' ')[1]}`}
+                                className={`h-1.5 rounded-full ${fillRatePresentation.bar}`}
                                 style={{ width: `${med.fillRate}%` }}
                               />
                             </div>
-                            <span className={`font-bold text-sm ${fillRateColor.split(' ')[0]}`}>
+                            <span className={`font-bold text-sm ${fillRatePresentation.text}`}>
                               {med.fillRate}%
                             </span>
+                            <Badge variant={fillRatePresentation.variant}>
+                              {fillRatePresentation.label}
+                            </Badge>
                           </div>
                         </td>
                       </tr>
