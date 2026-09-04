@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Modal } from '@/components/ui/Modal';
 
 type Status = 'PENDING' | 'FILLED' | 'CANNOT_FILL';
 
@@ -39,6 +40,8 @@ export default function PharmacyPrescriptionDetailPage({ params }: { params: { i
   const [fulfilling, setFulfilling] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
+  const [confirmAction, setConfirmAction] = useState<'FILLED' | 'CANNOT_FILL' | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const loadPrescription = useCallback(async () => {
     setLoading(true);
@@ -61,17 +64,21 @@ export default function PharmacyPrescriptionDetailPage({ params }: { params: { i
 
   useEffect(() => { loadPrescription(); }, [loadPrescription]);
 
-  const handleFulfill = async (action: 'FILLED' | 'CANNOT_FILL') => {
+  const handleFulfill = async () => {
+    if (!confirmAction) return;
     setFulfilling(true);
     setActionError(null);
     try {
       const response = await fetch(`/api/pharmacy/prescriptions/${params.id}/fulfill`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, notes: notes.trim() || undefined }),
+        body: JSON.stringify({ action: confirmAction, notes: notes.trim() || undefined }),
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
+        if (response.status === 409) {
+          throw new Error('This prescription has already been processed. Please refresh the status.');
+        }
         throw new Error(body.error || `Fulfillment failed (HTTP ${response.status})`);
       }
       if (body.prescription) {
@@ -79,6 +86,8 @@ export default function PharmacyPrescriptionDetailPage({ params }: { params: { i
       } else {
         await loadPrescription();
       }
+      setSuccessMessage(`Prescription successfully marked as ${confirmAction === 'FILLED' ? 'Filled' : 'Cannot Fill'}.`);
+      setConfirmAction(null);
       setNotes('');
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Failed to update fulfillment status.');
@@ -92,6 +101,11 @@ export default function PharmacyPrescriptionDetailPage({ params }: { params: { i
   if (!prescription) return null;
 
   return <div className="space-y-6">
+    {successMessage && (
+      <div className="rounded-md bg-green-50 p-4 text-sm text-green-800 border border-green-200 font-medium">
+        {successMessage}
+      </div>
+    )}
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-200 pb-5"><div><Link href="/pharmacy/prescriptions" className="text-sm font-semibold text-blue-700 hover:underline">← Back to prescription queue</Link><h1 className="text-2xl font-bold text-gray-900 mt-3">Prescription #{prescription.id.slice(-8).toUpperCase()}</h1><p className="text-sm text-gray-500 mt-1">Created {formatDate(prescription.createdAt)}</p></div><div>{statusBadge(prescription.status)}</div></div>
 
     {prescription.status === 'PENDING' && (
@@ -116,25 +130,16 @@ export default function PharmacyPrescriptionDetailPage({ params }: { params: { i
               disabled={fulfilling}
             />
           </div>
-          {actionError && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200">
-              {actionError}
-            </div>
-          )}
           <div className="flex flex-wrap gap-3">
             <Button
-              onClick={() => handleFulfill('FILLED')}
+              onClick={() => setConfirmAction('FILLED')}
               variant="primary"
-              isLoading={fulfilling}
-              disabled={fulfilling}
             >
               Dispense &amp; Mark as Filled
             </Button>
             <Button
-              onClick={() => handleFulfill('CANNOT_FILL')}
+              onClick={() => setConfirmAction('CANNOT_FILL')}
               variant="destructive"
-              isLoading={fulfilling}
-              disabled={fulfilling}
             >
               Cannot Fill Prescription
             </Button>
@@ -163,5 +168,50 @@ export default function PharmacyPrescriptionDetailPage({ params }: { params: { i
         )}
       </CardContent></Card>
     </div>
+      <Modal
+        isOpen={confirmAction !== null}
+        onClose={() => {
+          if (!fulfilling) {
+            setConfirmAction(null);
+            setActionError(null);
+          }
+        }}
+        title={confirmAction === 'FILLED' ? 'Confirm Fulfillment' : 'Confirm Cannot Fill'}
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setConfirmAction(null);
+                setActionError(null);
+              }}
+              disabled={fulfilling}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant={confirmAction === 'FILLED' ? 'primary' : 'destructive'}
+              onClick={handleFulfill}
+              isLoading={fulfilling}
+              disabled={fulfilling}
+            >
+              Confirm
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-700">
+            {confirmAction === 'FILLED'
+              ? 'Are you sure you want to mark this prescription as Filled? This action cannot be undone and will record the fulfillment timestamp.'
+              : 'Are you sure you cannot fulfill this prescription? This will mark the prescription as terminal and no further actions can be taken.'}
+          </p>
+          {actionError && (
+            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200">
+              {actionError}
+            </div>
+          )}
+        </div>
+      </Modal>
   </div>;
 }
