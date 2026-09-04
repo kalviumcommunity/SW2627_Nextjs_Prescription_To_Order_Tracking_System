@@ -172,3 +172,182 @@ export async function getPharmacyPrescriptionDetail(userId: string, prescription
 
   return { prescription: formatPrescription(prescription) };
 }
+
+export type FulfillmentAction = "FILLED" | "CANNOT_FILL";
+
+export function isFulfillmentAction(value: unknown): value is FulfillmentAction {
+  return value === "FILLED" || value === "CANNOT_FILL";
+}
+
+export interface FulfillPrescriptionInput {
+  action: "FILLED" | "CANNOT_FILL" | string;
+  notes?: string | null;
+}
+
+export async function fulfillPrescription(
+  userId: string,
+  prescriptionId: string,
+  input: FulfillPrescriptionInput
+) {
+  // 1. Resolve active PharmacyProfile from server session
+  const pharmacy = await getPharmacyOrError(userId);
+  if ("error" in pharmacy) return pharmacy;
+
+  // 2. Validate input action
+  if (!input || typeof input !== "object" || !input.action) {
+    return {
+      error: "Action is required. Must be 'FILLED' or 'CANNOT_FILL'.",
+      statusCode: 400 as const,
+    };
+  }
+
+  const { action, notes } = input;
+  if (action !== "FILLED" && action !== "CANNOT_FILL") {
+    return {
+      error: "Invalid action. Must be 'FILLED' or 'CANNOT_FILL'.",
+      statusCode: 400 as const,
+    };
+  }
+
+  // 3. Atomic guarded transaction
+  try {
+    return await prisma.$transaction(async (tx) => {
+      // Check if prescription exists
+      const existing = await tx.prescription.findUnique({
+        where: { id: prescriptionId },
+        select: { id: true, status: true },
+      });
+
+      if (!existing) {
+        return { error: "Prescription not found.", statusCode: 404 as const };
+      }
+
+      // Check terminal state
+      if (
+        existing.status === PrescriptionStatus.FILLED ||
+        existing.status === PrescriptionStatus.CANNOT_FILL
+      ) {
+        return {
+          error: `Prescription has already been processed with terminal status '${existing.status}'.`,
+          statusCode: 409 as const,
+        };
+      }
+
+      if (existing.status !== PrescriptionStatus.PENDING) {
+        return {
+          error: `Prescription status must be 'PENDING' to be fulfilled, but current status is '${existing.status}'.`,
+          statusCode: 409 as const,
+        };
+      }
+
+      const fulfillmentTimestamp = new Date();
+
+      if (action === "FILLED") {
+        // Guarded atomic update: only update if status is still PENDING
+        const updateResult = await tx.prescription.updateMany({
+          where: {
+            id: prescriptionId,
+            status: PrescriptionStatus.PENDING,
+          },
+          data: {
+            status: PrescriptionStatus.FILLED,
+            filledAt: fulfillmentTimestamp,
+          },
+        });
+
+        if (updateResult.count === 0) {
+          const current = await tx.prescription.findUnique({
+            where: { id: prescriptionId },
+            select: { status: true },
+          });
+          return {
+            error: `Prescription has already been processed with status '${current?.status ?? "UNKNOWN"}'.`,
+            statusCode: 409 as const,
+          };
+        }
+
+        // Create exactly one Fill record
+        await tx.fill.create({
+          data: {
+            prescriptionId,
+            pharmacyId: pharmacy.id, // Strictly server-derived from authenticated user
+            filledAt: fulfillmentTimestamp,
+            notes: typeof notes === "string" ? notes.trim() || null : null,
+          },
+        });
+      } else {
+        // CANNOT_FILL
+        const updateResult = await tx.prescription.updateMany({
+          where: {
+            id: prescriptionId,
+            status: PrescriptionStatus.PENDING,
+          },
+          data: {
+            status: PrescriptionStatus.CANNOT_FILL,
+          },
+        });
+
+        if (updateResult.count === 0) {
+          const current = await tx.prescription.findUnique({
+            where: { id: prescriptionId },
+            select: { status: true },
+          });
+          return {
+            error: `Prescription has already been processed with status '${current?.status ?? "UNKNOWN"}'.`,
+            statusCode: 409 as const,
+          };
+        }
+        // Do not create any Fill record for CANNOT_FILL
+      }
+
+      // Query updated prescription using safe pharmacy selector (diagnosis omitted)
+      const updatedPrescription = await tx.prescription.findUniqueOrThrow({
+        where: { id: prescriptionId },
+        select: pharmacyPrescriptionSelect,
+      });
+
+      return {
+        success: true,
+        message:
+          action === "FILLED"
+            ? "Prescription successfully filled."
+            : "Prescription marked as cannot fill.",
+        prescription: formatPrescription(updatedPrescription),
+      };
+    });
+  } catch (error: unknown) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return {
+        error: "Prescription has already been fulfilled.",
+        statusCode: 409 as const,
+      };
+    }
+    console.error("Error fulfilling prescription in transaction:", error);
+    return {
+      error: "An unexpected error occurred during fulfillment.",
+      statusCode: 500 as const,
+    };
+  }
+}
+
+export async function fulfillPharmacyPrescription(
+  prescriptionId: string,
+  pharmacyId: string,
+  action: FulfillmentAction | string
+) {
+  const pharmacy = await prisma.pharmacyProfile.findUnique({
+    where: { id: pharmacyId },
+    select: { userId: true },
+  });
+  if (!pharmacy) {
+    return { success: false, error: "Pharmacy profile not found.", statusCode: 404 as const };
+  }
+  const result = await fulfillPrescription(pharmacy.userId, prescriptionId, { action });
+  if ("error" in result) {
+    return { success: false, error: result.error, statusCode: result.statusCode };
+  }
+  return { success: true, prescription: result.prescription };
+}
