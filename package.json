@@ -14,6 +14,7 @@
     "test:doctor:analytics": "tsx -r dotenv/config scripts/test-doctor-analytics.ts",
     "test:pharmacy": "tsx -r dotenv/config scripts/test-pharmacy-api.ts",
     "test:pharmacy-fulfillment": "tsx -r dotenv/config scripts/test-pharmacy-fulfillment.ts",
+    "test:pharmacy-day13": "tsx -r dotenv/config scripts/test-pharmacy-day13.ts",
     "test:pharmacy-integration": "tsx -r dotenv/config scripts/test-pharmacy-integration.ts",
     "test:doctor-integration": "tsx -r dotenv/config scripts/test-doctor-integration.ts",
     "test:nav": "tsx -r dotenv/config scripts/test-protected-navigation.ts",
