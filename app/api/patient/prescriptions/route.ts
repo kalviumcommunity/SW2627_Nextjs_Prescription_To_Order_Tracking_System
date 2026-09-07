@@ -33,6 +33,11 @@ export async function GET() {
             id: true,
             specialization: true,
             phone: true,
+            user: {
+              select: {
+                email: true,
+              },
+            },
           },
         },
         prescriptionMedicines: {
