@@ -4,6 +4,10 @@ import { prisma } from "../lib/prisma";
 import { AuthUser, requireRole, AuthorizationError } from "../lib/permissions";
 import { getDoctorAnalytics } from "../lib/doctor-service";
 import { GET as analyticsRouteHandler } from "../app/api/doctor/analytics/route";
+<<<<<<< HEAD
+=======
+import { getDoctorAnalyticsResponse } from "../lib/doctor-analytics-route";
+>>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2
 
 async function runDoctorAnalyticsTestSuite() {
   console.log("===============================================================================");
@@ -124,6 +128,13 @@ async function runDoctorAnalyticsTestSuite() {
   assert(unauthRouteRes.status === 401, "Route handler returns 401 without session");
   console.log("  ✓ Route handler GET /api/doctor/analytics enforces 401 when unauthenticated");
 
+<<<<<<< HEAD
+=======
+  const wrongRoleRouteRes = await getDoctorAnalyticsResponse(adminAuth);
+  assert(wrongRoleRouteRes.status === 403, "Route handler returns 403 for an authenticated wrong role");
+  console.log("  ✓ Route handler GET /api/doctor/analytics enforces 403 for an authenticated wrong role");
+
+>>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2
   // ---------------------------------------------------------------------------
   // TEST SECTION 2: DR. SARAH ANALYTICS - LIVE DB CALCULATIONS
   // ---------------------------------------------------------------------------
@@ -321,10 +332,65 @@ async function runDoctorAnalyticsTestSuite() {
     console.log(`  ✓ 100% Fill Rate Scenario: ${hundredPercent.name} (${hundredPercent.filled}/${hundredPercent.prescribed} = 100%)`);
     console.log(`  ✓ 0% Fill Rate Scenario  : ${zeroPercent.name} (${zeroPercent.filled}/${zeroPercent.prescribed} = 0%)`);
     console.log(`  ✓ Mixed Fill Rate Scenario: ${mixedPercent.name} (${mixedPercent.filled}/${mixedPercent.prescribed} = ${mixedPercent.fillRate}%)`);
+<<<<<<< HEAD
+=======
+
+    const [formulaMedicine25, formulaMedicine50] = await Promise.all([
+      prisma.medicine.findFirstOrThrow({ where: { name: "Paracetamol 500mg" } }),
+      prisma.medicine.findFirstOrThrow({ where: { name: "Amoxicillin 500mg" } }),
+    ]);
+
+    const createFormulaPrescription = async (
+      status: PrescriptionStatus,
+      medicineId: string,
+      index: number,
+    ) => prisma.prescription.create({
+      data: {
+        doctorId: dummyDoctorUser.doctorProfile!.id,
+        patientId: patientAliceDb.patientProfile!.id,
+        diagnosis: `Deterministic formula fixture ${index}`,
+        status,
+        filledAt: status === PrescriptionStatus.FILLED ? new Date() : null,
+        prescriptionMedicines: {
+          create: {
+            medicineId,
+            dosage: "500mg",
+            frequency: "1 tablet daily",
+            duration: "5 days",
+          },
+        },
+      },
+    });
+
+    await Promise.all([
+      createFormulaPrescription(PrescriptionStatus.FILLED, formulaMedicine25.id, 1),
+      createFormulaPrescription(PrescriptionStatus.CANNOT_FILL, formulaMedicine25.id, 2),
+      createFormulaPrescription(PrescriptionStatus.CANNOT_FILL, formulaMedicine25.id, 3),
+      createFormulaPrescription(PrescriptionStatus.CANNOT_FILL, formulaMedicine25.id, 4),
+      createFormulaPrescription(PrescriptionStatus.FILLED, formulaMedicine50.id, 5),
+      createFormulaPrescription(PrescriptionStatus.PENDING, formulaMedicine50.id, 6),
+    ]);
+
+    const formulaAnalytics = await getDoctorAnalytics(dummyDoctorUser.id);
+    assert(!("error" in formulaAnalytics), "Formula fixture analytics returned successfully");
+    const formula25 = formulaAnalytics.medicineFillRates.find((m) => m.medicineId === formulaMedicine25.id);
+    const formula50 = formulaAnalytics.medicineFillRates.find((m) => m.medicineId === formulaMedicine50.id);
+    assert(formula25, "Found deterministic 25% fill rate medicine scenario");
+    assert(formula50, "Found deterministic 50% fill rate medicine scenario");
+    assert.strictEqual(formula25.fillRate, 25, "25% fill rate uses filled / prescribed");
+    assert.strictEqual(formula50.fillRate, 50, "50% fill rate uses filled / prescribed");
+
+    console.log(`  ✓ 25% Fill Rate Scenario: ${formula25.name} (${formula25.filled}/${formula25.prescribed} = 25%)`);
+    console.log(`  ✓ 50% Fill Rate Scenario: ${formula50.name} (${formula50.filled}/${formula50.prescribed} = 50%)`);
+>>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2
   } finally {
     // ---------------------------------------------------------------------------
     // TEST SECTION 8: CLEANUP
     // ---------------------------------------------------------------------------
+<<<<<<< HEAD
+=======
+    await prisma.prescription.deleteMany({ where: { doctorId: dummyDoctorUser.doctorProfile!.id } });
+>>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2
     await prisma.doctorProfile.deleteMany({ where: { userId: dummyDoctorUser.id } });
     await prisma.user.deleteMany({ where: { id: dummyDoctorUser.id } });
     console.log("\n-------------------------------------------------------------------------------");

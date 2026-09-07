@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { authorizeRequest, getPatientProfileByUserId } from "@/lib/permissions";
@@ -84,4 +85,17 @@ export async function GET() {
       { status: 500 }
     );
   }
+=======
+import { getPatientPrescriptionsResponse } from "@/lib/patient-service";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * GET /api/patient/prescriptions
+ * Returns prescriptions belonging strictly to the authenticated patient, including
+ * prescription ID, formatted doctor name, creation timestamp, diagnosis, document reference, and status.
+ */
+export async function GET() {
+  return getPatientPrescriptionsResponse();
+>>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2
 }

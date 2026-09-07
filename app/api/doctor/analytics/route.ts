@@ -1,7 +1,11 @@
+<<<<<<< HEAD
 import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { authorizeRequest } from "@/lib/permissions";
 import { getDoctorAnalytics } from "@/lib/doctor-service";
+=======
+import { getDoctorAnalyticsResponse } from "@/lib/doctor-analytics-route";
+>>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +20,7 @@ export const dynamic = "force-dynamic";
  * - Strictly isolates records to the authenticated doctor
  */
 export async function GET() {
+<<<<<<< HEAD
   try {
     // 1. Role-based authorization guard (DOCTOR only)
     const auth = await authorizeRequest({ allowedRoles: [UserRole.DOCTOR] });
@@ -42,4 +47,7 @@ export async function GET() {
       { status: 500 }
     );
   }
+=======
+  return getDoctorAnalyticsResponse();
+>>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2
 }

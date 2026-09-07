@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -55,6 +56,13 @@ export default function PatientPrescriptionsPage() {
         <CardHeader><CardTitle>Prescription records</CardTitle><p className="mt-1 text-xs text-gray-500">{data.prescriptions.length} {data.prescriptions.length === 1 ? 'record' : 'records'}</p></CardHeader>
         {data.prescriptions.length === 0 ? <CardContent className="p-10 text-center"><p className="font-semibold text-gray-800">No prescriptions found</p><p className="mt-1 text-sm text-gray-500">Your prescription history will appear here.</p></CardContent> : <div className="overflow-x-auto"><table className="w-full min-w-[40rem] text-left text-sm text-gray-600"><caption className="sr-only">Your prescriptions</caption><thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wider text-gray-500"><tr><th scope="col" className="px-6 py-3 font-semibold">Prescription ID</th><th scope="col" className="px-6 py-3 font-semibold">Doctor</th><th scope="col" className="px-6 py-3 font-semibold">Date</th><th scope="col" className="px-6 py-3 font-semibold">Status</th><th scope="col" className="px-6 py-3 text-right font-semibold">Action</th></tr></thead><tbody className="divide-y divide-gray-100">{data.prescriptions.map((prescription) => <tr key={prescription.id} className="hover:bg-gray-50"><td className="px-6 py-4 font-mono text-xs font-semibold text-gray-800">#{prescription.id}</td><td className="px-6 py-4"><span className="font-medium text-gray-900">{prescription.doctor.user?.email || 'Doctor'}</span><span className="block text-xs text-gray-500">{prescription.doctor.specialization}</span></td><td className="whitespace-nowrap px-6 py-4 text-xs text-gray-500">{formatDate(prescription.createdAt)}</td><td className="px-6 py-4">{statusBadge(prescription.status)}</td><td className="px-6 py-4 text-right"><Link href={`/patient/prescriptions/${prescription.id}`} className="font-semibold text-blue-700 hover:text-blue-900">View details</Link></td></tr>)}</tbody></table></div>}
       </Card>}
+=======
+export default function PatientPrescriptionsPage() {
+  return (
+    <div>
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">My Prescriptions</h2>
+      <p className="text-gray-600">View your prescription history and current medications. Features will be available in upcoming releases.</p>
+>>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2
     </div>
   );
 }

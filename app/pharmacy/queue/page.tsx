@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 export default function PharmacyQueuePage() {
   return (
     <div>
@@ -6,3 +7,11 @@ export default function PharmacyQueuePage() {
     </div>
   );
 }
+=======
+import { redirect } from 'next/navigation';
+
+export default function PharmacyQueuePage() {
+  redirect('/pharmacy/prescriptions');
+}
+
+>>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2

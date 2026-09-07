@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
 We are implementing DAY 12 of MedEasy.
 GOAL:
@@ -90,6 +91,8 @@ None
 None
 - summarize changed files and test results.
 */
+=======
+>>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2
 import Link from "next/link";
 import { AuthShell } from "@/components/layout/AuthShell";
 import { PasswordResetForm } from "@/components/auth/PasswordResetForm";
