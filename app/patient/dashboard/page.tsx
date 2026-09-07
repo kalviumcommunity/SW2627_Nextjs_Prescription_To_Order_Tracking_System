@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -123,13 +122,3 @@ function MetricCard({ label, value, detail, tone = 'blue' }: { label: string; va
   const tones = { blue: 'border-blue-100 bg-blue-50/30 text-blue-900', green: 'border-green-200 bg-green-50/30 text-green-900', yellow: 'border-yellow-200 bg-yellow-50/30 text-yellow-900' };
   return <Card className={tones[tone]}><CardContent className="p-5"><p className="text-xs font-semibold uppercase tracking-wider text-gray-600">{label}</p><p className="mt-2 text-3xl font-bold">{value}</p><p className="mt-2 text-xs text-gray-600">{detail}</p></CardContent></Card>;
 }
-=======
-export default function PatientDashboardPage() {
-  return (
-    <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Patient Dashboard</h2>
-      <p className="text-gray-600">Welcome to your health overview. Features will be available in upcoming releases.</p>
-    </div>
-  );
-}
->>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2

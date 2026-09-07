@@ -1,12 +1,3 @@
-<<<<<<< HEAD
-export default function PharmacyHistoryPage() {
-  return (
-    <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Filled History</h2>
-      <p className="text-gray-600">Review previously filled prescription records. Features will be available in upcoming releases.</p>
-    </div>
-  );
-=======
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -108,5 +99,4 @@ export default function PharmacyHistoryPage() {
       </CardContent>
     </Card>
   </div>;
->>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2
 }

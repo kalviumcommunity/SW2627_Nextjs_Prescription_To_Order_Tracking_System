@@ -62,12 +62,29 @@ All test scenarios were verified using automated script [`scripts/test-patient-a
 
 ---
 
-## 5. Verification Commands Run
+## 5. Day 14 Integration Validation (2026-09-07)
 
-1. `npm run test:patient`: **PASS** (100% of checks passed)
-2. `npm run test:authz`: **PASS** (All 16 RBAC checks passed)
-3. `npm run test:doctor-integration`: **PASS** (34/34 checks passed)
-4. `npm run test:pharmacy-day13`: **PASS** (Passed)
-5. `npx tsc --noEmit`: **PASS** (0 TypeScript errors)
-6. `npm run lint`: **PASS** (0 ESLint errors/warnings)
-7. `npm run build`: **PASS** (Next.js production build succeeded)
+The merged Patient slice was revalidated against the local seeded database. The existing backend suite passed all ownership, authorization, clinical visibility, tracking, and safe-error checks. An explicit response-content assertion was added to reject `organization` and `password` fields from dashboard, list, detail, and tracking payloads.
+
+| Check | Result |
+|---|:---:|
+| Patient API/security suite (`npm run test:patient`) | **PASS** |
+| Authentication suite (`npm run test:auth`) | **PASS**, including seeded Patient login |
+| Shared authorization suite (`npm run test:authz`) | **PASS** |
+| Doctor prescription creation integration (`npm run test:doctor-integration`) | **PASS, 34/34** |
+| Pharmacy integration prerequisite (`npm run test:pharmacy-integration`) | **BLOCKED: unresolved merge markers in `lib/pharmacy-service.ts`** |
+| TypeScript (`npx tsc --noEmit`) | **BLOCKED: unresolved merge markers outside Patient module** |
+| Lint (`npm run lint`) | **BLOCKED: unresolved merge markers outside Patient module** |
+| Production build (`npm run build`) | **BLOCKED: invalid Windows Next SWC binary; merge markers also remain** |
+| Unit/browser E2E commands | **NOT AVAILABLE in `package.json`** |
+
+### Patient fixes applied
+
+- Resolved the Patient dashboard, prescription list, tracking page, and prescription list API merge conflicts.
+- Routed Patient prescription details through `/api/patient/prescriptions/[id]`, preserving patient ownership checks and safe 404 responses.
+- Removed the frontend's invented CANNOT_FILL cause; it now reports only that fulfillment is unavailable.
+- Added explicit organization/password response-leak assertions to the Patient verification script.
+
+## 6. Workflow Coverage Notes
+
+Backend coverage verifies Patient login identity resolution, dashboard/list/detail/tracking contracts, ownership isolation, 401/403 boundaries, clinical visibility, empty-safe response shapes, not-found behavior, and all fulfillment states. Browser-level responsive/loading/error screenshots and a live doctor-to-pharmacy-to-patient refresh flow were not executable because this repository has no configured browser E2E runner and the pharmacy integration is blocked by unresolved merge markers.

@@ -17,6 +17,12 @@ import { GET as prescriptionsListRoute } from "../app/api/patient/prescriptions/
 import { GET as prescriptionDetailRoute } from "../app/api/patient/prescriptions/[id]/route";
 import { GET as prescriptionTrackingRoute } from "../app/api/patient/prescriptions/[id]/tracking/route";
 
+function assertNoSensitiveOrganizationFields(payload: unknown, label: string) {
+  const serialized = JSON.stringify(payload).toLowerCase();
+  assert(!serialized.includes("organization"), `${label} does not expose organization data`);
+  assert(!serialized.includes("password"), `${label} does not expose password data`);
+}
+
 async function runPatientBackendVerification() {
   console.log("===============================================================================");
   console.log("🧑‍⚕️ MedEasy Prescription-to-Order Tracking System - Day 14 Patient Backend Verification");
@@ -172,6 +178,7 @@ async function runPatientBackendVerification() {
   const dashboardRes = await getPatientDashboardResponse(aliceAuth);
   assert.strictEqual(dashboardRes.status, 200, "Alice granted access to patient dashboard");
   const dashboard = await dashboardRes.json();
+  assertNoSensitiveOrganizationFields(dashboard, "Dashboard response");
 
   // Validate patient profile header
   assert.strictEqual(dashboard.patient.id, aliceUser.patientProfile!.id, "Dashboard patient ID matches profile");
@@ -227,6 +234,7 @@ async function runPatientBackendVerification() {
   const listRes = await getPatientPrescriptionsResponse(aliceAuth);
   assert.strictEqual(listRes.status, 200, "Alice granted access to prescription list");
   const listData = await listRes.json();
+  assertNoSensitiveOrganizationFields(listData, "Prescription list response");
 
   assert(Array.isArray(listData.prescriptions), "Prescriptions list is an array");
   assert(listData.prescriptions.length > 0, "Alice has prescriptions in list");
@@ -259,6 +267,7 @@ async function runPatientBackendVerification() {
   const detailRes = await getPatientPrescriptionDetailResponse(pendingRx.id, aliceAuth);
   assert.strictEqual(detailRes.status, 200, "Alice granted access to her prescription detail");
   const detailData = await detailRes.json();
+  assertNoSensitiveOrganizationFields(detailData, "Prescription detail response");
   const rxDetail = detailData.prescription;
 
   // 1. Patient Information
@@ -358,7 +367,9 @@ async function runPatientBackendVerification() {
   // Scenario A: PENDING tracking (Alice's Rx1)
   const pendingTrackRes = await getPatientPrescriptionTrackingResponse(pendingRx.id, aliceAuth);
   assert.strictEqual(pendingTrackRes.status, 200, "Alice can track her PENDING prescription");
-  const pendingTrack = (await pendingTrackRes.json()).tracking;
+  const pendingTrackData = await pendingTrackRes.json();
+  assertNoSensitiveOrganizationFields(pendingTrackData, "Prescription tracking response");
+  const pendingTrack = pendingTrackData.tracking;
   assert.strictEqual(pendingTrack.status, PrescriptionStatus.PENDING, "Tracking status is PENDING");
   assert.strictEqual(pendingTrack.state.isPending, true, "isPending flag is true");
   assert.strictEqual(pendingTrack.state.isFilled, false, "isFilled flag is false");

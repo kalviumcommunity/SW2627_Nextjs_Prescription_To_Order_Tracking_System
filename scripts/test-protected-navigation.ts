@@ -61,11 +61,7 @@ console.log("-------------------------------------------------------------------
 const pharmacyNav = getNavigationForRole(UserRole.PHARMACY);
 const expectedPharmacyItems = [
   { name: "Dashboard", href: "/pharmacy/dashboard" },
-<<<<<<< HEAD
   { name: "Prescription Queue", href: "/pharmacy/queue" },
-=======
-  { name: "Prescription Queue", href: "/pharmacy/prescriptions" },
->>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2
   { name: "Filled History", href: "/pharmacy/history" },
   { name: "Analytics", href: "/pharmacy/analytics" },
   { name: "Profile", href: "/pharmacy/profile" },
