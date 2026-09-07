@@ -1,5 +1,7 @@
 import { Prisma, PrescriptionStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+<<<<<<< HEAD
+=======
 import { getPharmacyProfileByUserId } from "@/lib/permissions";
 
 const pharmacyPrescriptionSelect = {
@@ -332,6 +334,7 @@ export async function getPharmacyPrescriptionDetail(userId: string, prescription
 
   return { prescription: formatPrescription(prescription) };
 }
+>>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2
 
 export type FulfillmentAction = "FILLED" | "CANNOT_FILL";
 
@@ -339,6 +342,45 @@ export function isFulfillmentAction(value: unknown): value is FulfillmentAction 
   return value === "FILLED" || value === "CANNOT_FILL";
 }
 
+<<<<<<< HEAD
+type FulfillmentResult =
+  | { success: true; prescription: Record<string, unknown> }
+  | { success: false; error: string; statusCode: 404 | 409 };
+
+const pharmacyPrescriptionSelect = {
+  id: true,
+  status: true,
+  filledAt: true,
+  createdAt: true,
+  updatedAt: true,
+  documentRef: true,
+  patient: {
+    select: {
+      id: true,
+      name: true,
+      contactInfo: true,
+    },
+  },
+  prescriptionMedicines: {
+    include: {
+      medicine: {
+        select: {
+          id: true,
+          name: true,
+          genericName: true,
+        },
+      },
+    },
+  },
+  fill: {
+    select: {
+      id: true,
+      pharmacyId: true,
+      filledAt: true,
+    },
+  },
+} satisfies Prisma.PrescriptionSelect;
+=======
 export interface FulfillPrescriptionInput {
   action: "FILLED" | "CANNOT_FILL" | string;
   notes?: string | null;
@@ -492,10 +534,79 @@ export async function fulfillPrescription(
     };
   }
 }
+>>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2
 
 export async function fulfillPharmacyPrescription(
   prescriptionId: string,
   pharmacyId: string,
+<<<<<<< HEAD
+  action: FulfillmentAction
+): Promise<FulfillmentResult> {
+  try {
+    const prescription = await prisma.$transaction(async (transaction) => {
+      const fulfillmentTimestamp = new Date();
+      const update = await transaction.prescription.updateMany({
+        where: {
+          id: prescriptionId,
+          status: PrescriptionStatus.PENDING,
+        },
+        data:
+          action === "FILLED"
+            ? { status: PrescriptionStatus.FILLED, filledAt: fulfillmentTimestamp }
+            : { status: PrescriptionStatus.CANNOT_FILL },
+      });
+
+      if (update.count !== 1) {
+        const existing = await transaction.prescription.findUnique({
+          where: { id: prescriptionId },
+          select: { id: true },
+        });
+
+        throw new FulfillmentConflict(
+          existing ? "Prescription has already been processed." : "Prescription not found.",
+          existing ? 409 : 404
+        );
+      }
+
+      if (action === "FILLED") {
+        await transaction.fill.create({
+          data: {
+            prescriptionId,
+            pharmacyId,
+            filledAt: fulfillmentTimestamp,
+          },
+        });
+      }
+
+      return transaction.prescription.findUniqueOrThrow({
+        where: { id: prescriptionId },
+        select: pharmacyPrescriptionSelect,
+      });
+    });
+
+    return { success: true, prescription: prescription as Record<string, unknown> };
+  } catch (error) {
+    if (error instanceof FulfillmentConflict) {
+      return { success: false, error: error.message, statusCode: error.statusCode };
+    }
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { success: false, error: "Prescription has already been filled.", statusCode: 409 };
+    }
+
+    throw error;
+  }
+}
+
+class FulfillmentConflict extends Error {
+  public statusCode: 404 | 409;
+
+  constructor(message: string, statusCode: 404 | 409) {
+    super(message);
+    this.name = "FulfillmentConflict";
+    this.statusCode = statusCode;
+  }
+=======
   action: FulfillmentAction | string
 ) {
   const pharmacy = await prisma.pharmacyProfile.findUnique({
@@ -510,4 +621,5 @@ export async function fulfillPharmacyPrescription(
     return { success: false, error: result.error, statusCode: result.statusCode };
   }
   return { success: true, prescription: result.prescription };
+>>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2
 }

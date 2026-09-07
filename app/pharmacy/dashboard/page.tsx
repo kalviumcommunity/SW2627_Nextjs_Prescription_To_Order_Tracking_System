@@ -1,3 +1,12 @@
+<<<<<<< HEAD
+export default function PharmacyDashboardPage() {
+  return (
+    <div>
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">Pharmacy Dashboard</h2>
+      <p className="text-gray-600">Welcome to your pharmacy operations center. Features will be available in upcoming releases.</p>
+    </div>
+  );
+=======
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -103,4 +112,5 @@ export default function PharmacyDashboardPage() {
       </CardContent>
     </Card>
   </div>;
+>>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2
 }

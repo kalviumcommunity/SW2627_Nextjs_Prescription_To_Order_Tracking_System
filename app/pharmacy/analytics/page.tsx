@@ -1,3 +1,12 @@
+<<<<<<< HEAD
+export default function PharmacyAnalyticsPage() {
+  return (
+    <div>
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">Analytics</h2>
+      <p className="text-gray-600">Pharmacy performance analytics and dispensing insights. Features will be available in upcoming releases.</p>
+    </div>
+  );
+=======
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -71,4 +80,5 @@ export default function PharmacyAnalyticsPage() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6"><Card className="lg:col-span-2"><CardHeader><CardTitle>Fulfillment trends</CardTitle></CardHeader><CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8"><div><h3 className="text-sm font-semibold text-gray-900 mb-4">Daily successful fulfillment</h3><TrendList items={data.trends?.dailySuccessfulFulfillment} kind="daily" /></div><div><h3 className="text-sm font-semibold text-gray-900 mb-4">Weekly successful fulfillment</h3><TrendList items={data.trends?.weeklySuccessfulFulfillment} kind="weekly" /></div></CardContent></Card><Card><CardHeader><CardTitle>Status breakdown</CardTitle></CardHeader><CardContent className="space-y-4">{breakdown.map(([status, count]) => <div key={status} className="flex items-center justify-between"><span className="text-sm text-gray-700">{statusLabel(status)}</span><Badge variant={statusVariant(status)}>{count}</Badge></div>)}</CardContent></Card></div>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><Card><CardHeader><CardTitle>Most processed medicines</CardTitle></CardHeader><CardContent className="p-0">{medicines.length === 0 ? <p className="p-6 text-sm text-gray-500">No medicine activity yet.</p> : <div className="divide-y divide-gray-100">{medicines.map((item, index) => <div key={`${item.name}-${index}`} className="flex items-center justify-between gap-4 p-4"><div><p className="text-sm font-semibold text-gray-900">{item.name}</p><p className="text-xs text-gray-500">{item.genericName || 'Catalog medicine'}</p></div><span className="text-sm font-bold text-gray-700">{item.processedCount}</span></div>)}</div>}</CardContent></Card><Card><CardHeader><CardTitle>Recent activity</CardTitle></CardHeader><CardContent className="p-0">{activity.length === 0 ? <p className="p-6 text-sm text-gray-500">No recent activity yet.</p> : <div className="divide-y divide-gray-100">{activity.map((item) => <Link href={`/pharmacy/prescriptions/${item.id}`} key={item.id} className="flex items-center justify-between gap-4 p-4 hover:bg-gray-50"><div><p className="text-sm font-semibold text-gray-900">{item.patient.name}</p><p className="text-xs text-gray-500">{item.doctor.name} · {formatDate(item.createdAt)}</p></div><Badge variant={statusVariant(item.status)}>{statusLabel(item.status)}</Badge></Link>)}</div>}</CardContent></Card></div>
   </div>;
+>>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2
 }
