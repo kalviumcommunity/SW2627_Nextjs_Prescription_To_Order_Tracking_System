@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -18,7 +17,7 @@ function formatDate(value: string) {
 
 function TrackingMessage({ prescription }: { prescription: Prescription }) {
   if (prescription.status === 'FILLED') return <div className="mt-3 text-sm text-green-800">Successfully fulfilled{prescription.fill?.filledAt ? ` on ${formatDate(prescription.fill.filledAt)}` : '.'}</div>;
-  if (prescription.status === 'CANNOT_FILL') return <div className="mt-3 text-sm text-red-800">The pharmacy could not fulfill this prescription.</div>;
+  if (prescription.status === 'CANNOT_FILL') return <div className="mt-3 text-sm text-red-800">This prescription is unavailable for fulfillment.</div>;
   return <div className="mt-3 text-sm text-yellow-900">This prescription is waiting for pharmacy fulfillment.</div>;
 }
 
@@ -55,13 +54,4 @@ export default function PatientTrackingPage() {
     {isLoading && !data && <div className="flex min-h-[16rem] items-center justify-center"><Spinner size="lg" /></div>}
     {data && <Card><CardHeader><CardTitle>Fulfillment status</CardTitle><p className="mt-1 text-xs text-gray-500">Status is updated by the pharmacy.</p></CardHeader>{data.prescriptions.length === 0 ? <CardContent className="p-10 text-center"><p className="font-semibold text-gray-800">No prescriptions to track</p><p className="mt-1 text-sm text-gray-500">Your fulfillment updates will appear here.</p></CardContent> : <div className="divide-y divide-gray-100">{data.prescriptions.map((prescription) => <div key={prescription.id} className="px-6 py-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-mono text-xs font-semibold text-gray-800">#{prescription.id}</p><p className="mt-1 text-xs text-gray-500">Created {formatDate(prescription.createdAt)}</p></div><div className="flex items-center gap-3">{statusBadge(prescription.status)}<Link href={`/patient/prescriptions/${prescription.id}`} className="text-sm font-semibold text-blue-700 hover:text-blue-900">Details</Link></div></div><TrackingMessage prescription={prescription} /></div>)}</div>}</Card>}
   </div>;
-=======
-export default function PatientTrackingPage() {
-  return (
-    <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Tracking</h2>
-      <p className="text-gray-600">Track the status of your prescription orders. Features will be available in upcoming releases.</p>
-    </div>
-  );
->>>>>>> 8cb84a5d07c7faeeded506a6b2a4cb078bb615a2
 }

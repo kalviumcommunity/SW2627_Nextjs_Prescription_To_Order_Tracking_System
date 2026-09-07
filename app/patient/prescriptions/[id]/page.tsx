@@ -16,7 +16,7 @@ export default function PatientPrescriptionDetailPage({ params }: { params: { id
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/prescriptions/${params.id}`);
+      const response = await fetch(`/api/patient/prescriptions/${params.id}`);
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
         throw new Error(response.status === 404 ? 'Prescription not found.' : payload.error || 'Unable to load prescription details.');
