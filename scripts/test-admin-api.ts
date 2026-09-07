@@ -312,6 +312,8 @@ async function runAdminBackendVerification() {
   assert.ok(rxDetail.doctor && rxDetail.doctor.email, "Doctor metadata present");
   assert.ok(rxDetail.patient && rxDetail.patient.contactInfo, "Patient metadata present");
   assert.ok(Array.isArray(rxDetail.medicines), "Medicines array present");
+  assert.ok(Array.isArray(rxDetail.prescriptionMedicines), "prescriptionMedicines array present");
+  assert.strictEqual(rxDetail.prescriptionMedicines.length, rxDetail.medicines.length, "prescriptionMedicines and medicines lengths match");
   assert.ok(rxDetail.createdAt, "Creation timestamp present");
 
   // Verify 404 for non-existent prescription
