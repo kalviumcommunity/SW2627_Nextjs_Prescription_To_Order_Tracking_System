@@ -19,6 +19,7 @@
     "test:doctor-integration": "tsx -r dotenv/config scripts/test-doctor-integration.ts",
     "test:nav": "tsx -r dotenv/config scripts/test-protected-navigation.ts",
     "test:day9": "tsx -r dotenv/config scripts/test-day9-doctor-detail-storage.ts",
+    "test:patient": "tsx -r dotenv/config scripts/test-patient-api.ts",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate dev",
