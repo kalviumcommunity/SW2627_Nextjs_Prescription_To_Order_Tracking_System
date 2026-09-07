@@ -93,6 +93,166 @@ async function getPharmacyOrError(userId: string) {
   return pharmacy || { error: "Pharmacy profile not found.", statusCode: 404 as const };
 }
 
+const pharmacyHistorySelect = {
+  id: true,
+  status: true,
+  createdAt: true,
+  filledAt: true,
+  doctor: {
+    select: {
+      user: { select: { email: true } },
+    },
+  },
+  patient: { select: { name: true } },
+  fill: {
+    select: {
+      pharmacyId: true,
+      filledAt: true,
+    },
+  },
+} as const;
+
+function formatPharmacyHistory(
+  prescription: Prisma.PrescriptionGetPayload<{ select: typeof pharmacyHistorySelect }>
+) {
+  return {
+    prescriptionId: prescription.id,
+    patientName: prescription.patient.name,
+    doctorName: getDoctorDisplayName(prescription.doctor.user.email),
+    status: prescription.status,
+    createdAt: prescription.createdAt,
+    fulfilledAt: prescription.fill?.filledAt ?? prescription.filledAt,
+  };
+}
+
+export async function getPharmacyHistory(userId: string) {
+  const pharmacy = await getPharmacyOrError(userId);
+  if ("error" in pharmacy) return pharmacy;
+
+  const history = await prisma.prescription.findMany({
+    where: {
+      OR: [
+        { fill: { pharmacyId: pharmacy.id } },
+        { status: PrescriptionStatus.PENDING },
+        { status: PrescriptionStatus.CANNOT_FILL },
+      ],
+    },
+    select: pharmacyHistorySelect,
+    orderBy: { createdAt: "desc" },
+  });
+
+  return {
+    pharmacy: { id: pharmacy.id, pharmacyName: pharmacy.pharmacyName },
+    history: history.map(formatPharmacyHistory),
+  };
+}
+
+export async function getPharmacyAnalytics(userId: string) {
+  const pharmacy = await getPharmacyOrError(userId);
+  if ("error" in pharmacy) return pharmacy;
+
+  const [statusGroups, medicineGroups, dailyTrend, weeklyTrend, recentActivity] =
+    await Promise.all([
+      prisma.prescription.groupBy({
+        by: ["status"],
+        where: {
+          OR: [
+            { status: PrescriptionStatus.PENDING },
+            { status: PrescriptionStatus.CANNOT_FILL },
+            { fill: { pharmacyId: pharmacy.id } },
+          ],
+        },
+        _count: { id: true },
+      }),
+      prisma.prescriptionMedicine.groupBy({
+        by: ["medicineId"],
+        where: {
+          prescription: {
+            OR: [
+              { status: PrescriptionStatus.PENDING },
+              { status: PrescriptionStatus.CANNOT_FILL },
+              { fill: { pharmacyId: pharmacy.id } },
+            ],
+          },
+        },
+        _count: { prescriptionId: true },
+        orderBy: { _count: { prescriptionId: "desc" } },
+        take: 10,
+      }),
+      prisma.$queryRaw<Array<{ bucket: Date; count: bigint }>>(Prisma.sql`
+        SELECT date_trunc('day', "filledAt") AS bucket, COUNT(*)::bigint AS count
+        FROM "Fill"
+        WHERE "pharmacyId" = ${pharmacy.id}
+          AND "filledAt" >= CURRENT_DATE - INTERVAL '29 days'
+        GROUP BY 1
+        ORDER BY 1 ASC
+      `),
+      prisma.$queryRaw<Array<{ bucket: Date; count: bigint }>>(Prisma.sql`
+        SELECT date_trunc('week', "filledAt") AS bucket, COUNT(*)::bigint AS count
+        FROM "Fill"
+        WHERE "pharmacyId" = ${pharmacy.id}
+          AND "filledAt" >= date_trunc('week', CURRENT_DATE) - INTERVAL '11 weeks'
+        GROUP BY 1
+        ORDER BY 1 ASC
+      `),
+      prisma.prescription.findMany({
+        where: {
+          OR: [
+            { status: PrescriptionStatus.PENDING },
+            { status: PrescriptionStatus.CANNOT_FILL },
+            { fill: { pharmacyId: pharmacy.id } },
+          ],
+        },
+        take: 10,
+        orderBy: { updatedAt: "desc" },
+        select: pharmacyPrescriptionSelect,
+      }),
+    ]);
+
+  const counts = {
+    pending: 0,
+    filled: 0,
+    cannotFill: 0,
+  };
+  for (const group of statusGroups) {
+    if (group.status === PrescriptionStatus.PENDING) counts.pending = group._count.id;
+    if (group.status === PrescriptionStatus.FILLED) counts.filled = group._count.id;
+    if (group.status === PrescriptionStatus.CANNOT_FILL) counts.cannotFill = group._count.id;
+  }
+
+  const totalReceived = counts.pending + counts.filled + counts.cannotFill;
+  const medicines = await prisma.medicine.findMany({
+    where: { id: { in: medicineGroups.map((group) => group.medicineId) } },
+    select: { id: true, name: true, genericName: true },
+  });
+  const medicineById = new Map(medicines.map((medicine) => [medicine.id, medicine]));
+
+  return {
+    pharmacy: { id: pharmacy.id, pharmacyName: pharmacy.pharmacyName },
+    summary: {
+      totalPrescriptionsReceived: totalReceived,
+      pendingPrescriptions: counts.pending,
+      filledPrescriptions: counts.filled,
+      cannotFillPrescriptions: counts.cannotFill,
+      fulfillmentRate: totalReceived > 0 ? Number(((counts.filled / totalReceived) * 100).toFixed(1)) : 0,
+    },
+    trends: {
+      dailySuccessfulFulfillment: dailyTrend.map((item) => ({ date: item.bucket, count: Number(item.count) })),
+      weeklySuccessfulFulfillment: weeklyTrend.map((item) => ({ week: item.bucket, count: Number(item.count) })),
+    },
+    medicines: medicineGroups.map((group) => ({
+      medicine: medicineById.get(group.medicineId),
+      processedCount: group._count.prescriptionId,
+    })),
+    statusBreakdown: {
+      pending: counts.pending,
+      filled: counts.filled,
+      cannot_fill: counts.cannotFill,
+    },
+    recentActivity: recentActivity.map(formatPrescription),
+  };
+}
+
 export async function getPharmacyDashboardData(userId: string) {
   const pharmacy = await getPharmacyOrError(userId);
   if ("error" in pharmacy) return pharmacy;
