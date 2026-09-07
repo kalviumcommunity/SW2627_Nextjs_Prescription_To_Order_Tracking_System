@@ -418,6 +418,13 @@ export async function getAdminPrescriptionDetail(prescriptionId: string) {
         contactInfo: prescription.patient.contactInfo,
       },
       patientName: prescription.patient.name,
+      prescriptionMedicines: prescription.prescriptionMedicines.map((pm) => ({
+        id: pm.id,
+        dosage: pm.dosage,
+        frequency: pm.frequency,
+        duration: pm.duration,
+        medicine: pm.medicine,
+      })),
       medicines: prescription.prescriptionMedicines.map((pm) => ({
         id: pm.id,
         dosage: pm.dosage,

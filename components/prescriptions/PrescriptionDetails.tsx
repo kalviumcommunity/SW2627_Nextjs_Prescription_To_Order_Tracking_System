@@ -59,7 +59,8 @@ export interface PrescriptionData {
   updatedAt?: string | Date;
   patient?: PrescriptionPatientInfo | null;
   doctor?: PrescriptionDoctorInfo | null;
-  prescriptionMedicines: PrescriptionMedicineItem[];
+  prescriptionMedicines?: PrescriptionMedicineItem[];
+  medicines?: PrescriptionMedicineItem[];
   fill?: PrescriptionFillInfo | null;
 }
 
@@ -131,7 +132,9 @@ export function PrescriptionDetails({
             <span className="text-xs font-semibold uppercase tracking-wider text-blue-600">
               Prescription Details
             </span>
-            <h3 className="text-xl font-bold text-gray-900 font-mono">#{prescription.id}</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 font-mono break-all">
+              #{prescription.id}
+            </h3>
           </div>
           <div className="flex items-center gap-2">{getStatusBadge(prescription.status)}</div>
         </div>
@@ -195,35 +198,41 @@ export function PrescriptionDetails({
         </div>
       )}
 
-      <div>
-        <h4 className="mb-3 text-sm font-bold text-gray-900 uppercase tracking-wider">
-          Medicines ({prescription.prescriptionMedicines.length})
-        </h4>
-        <div className="space-y-2.5">
-          {prescription.prescriptionMedicines.length === 0 ? (
-            <p className="text-sm text-gray-500">No medicines recorded for this prescription.</p>
-          ) : (
-            prescription.prescriptionMedicines.map((item, idx) => (
-              <div
-                key={item.id || idx}
-                className="rounded-lg border border-gray-200 bg-white p-3"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-bold text-gray-900">{item.medicine.name}</span>
-                  {item.medicine.genericName && (
-                    <span className="text-xs text-gray-500 italic">({item.medicine.genericName})</span>
-                  )}
-                </div>
-                <p className="mt-1 text-xs text-gray-600">
-                  <span className="font-semibold text-gray-700">Dosage:</span> {item.dosage} •{' '}
-                  <span className="font-semibold text-gray-700">Frequency:</span> {item.frequency} •{' '}
-                  <span className="font-semibold text-gray-700">Duration:</span> {item.duration}
-                </p>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+      {/* Prescribed Medicines */}
+      {(() => {
+        const medicinesList = prescription.prescriptionMedicines || prescription.medicines || [];
+        return (
+          <div>
+            <h4 className="mb-3 text-sm font-bold text-gray-900 uppercase tracking-wider">
+              Medicines ({medicinesList.length})
+            </h4>
+            <div className="space-y-2.5">
+              {medicinesList.length === 0 ? (
+                <p className="text-sm text-gray-500">No medicines recorded for this prescription.</p>
+              ) : (
+                medicinesList.map((item, idx) => (
+                  <div
+                    key={item.id || idx}
+                    className="rounded-lg border border-gray-200 bg-white p-3"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-bold text-gray-900">{item.medicine.name}</span>
+                      {item.medicine.genericName && (
+                        <span className="text-xs text-gray-500 italic">({item.medicine.genericName})</span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-600">
+                      <span className="font-semibold text-gray-700">Dosage:</span> {item.dosage} •{' '}
+                      <span className="font-semibold text-gray-700">Frequency:</span> {item.frequency} •{' '}
+                      <span className="font-semibold text-gray-700">Duration:</span> {item.duration}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3.5">
         <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
