@@ -8,9 +8,10 @@ interface ModalProps {
   children: React.ReactNode;
   onClose: () => void;
   closeDisabled?: boolean;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-export function Modal({ open, title, children, onClose, closeDisabled = false }: ModalProps) {
+export function Modal({ open, title, children, onClose, closeDisabled = false, size = 'md' }: ModalProps) {
   useEffect(() => {
     if (!open) return;
 
@@ -24,6 +25,13 @@ export function Modal({ open, title, children, onClose, closeDisabled = false }:
 
   if (!open) return null;
 
+  const sizes = {
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-2xl',
+    xl: 'max-w-4xl',
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-gray-950/50 p-4"
@@ -33,7 +41,7 @@ export function Modal({ open, title, children, onClose, closeDisabled = false }:
       }}
     >
       <div
-        className="w-full max-w-md rounded-lg bg-white shadow-xl"
+        className={`w-full ${sizes[size]} max-h-[90vh] overflow-y-auto rounded-lg bg-white shadow-xl`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirmation-modal-title"

@@ -3,9 +3,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { PrescriptionDetails } from '@/components/prescriptions/PrescriptionDetails';
+import { PrescriptionTable } from '@/components/prescriptions/PrescriptionTable';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { LoadingState } from '@/components/ui/LoadingState';
 
 interface MedicineItem {
   id: string;
@@ -96,32 +99,6 @@ export default function DoctorDashboardPage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  const getStatusBadge = (status: RecentPrescription['status']) => {
-    switch (status) {
-      case 'FILLED':
-        return <Badge variant="success">Filled</Badge>;
-      case 'PENDING':
-        return <Badge variant="warning">Pending</Badge>;
-      case 'CANNOT_FILL':
-        return <Badge variant="destructive">Cannot Fill</Badge>;
-      default:
-        return <Badge variant="default">{status}</Badge>;
-    }
-  };
-
-  const formatDate = (isoString: string) => {
-    try {
-      const date = new Date(isoString);
-      return date.toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      });
-    } catch {
-      return isoString;
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Top Header & Doctor Profile Summary */}
@@ -136,28 +113,7 @@ export default function DoctorDashboardPage() {
                 <span className="font-mono text-gray-700">{data.doctor.licenseNumber}</span>
               </span>
             ) : (
-              'Real-time overview of your patient roster and authored prescriptions.'
-            )}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={fetchDashboardData}
-            isLoading={isLoading}
-            className="flex items-center gap-1.5"
-          >
-            <svg
-              className="w-4 h-4 text-gray-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
+              <ErrorState title="Unable to load dashboard data" message={error} onRetry={fetchDashboardData} />
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
               />
             </svg>
@@ -246,26 +202,7 @@ export default function DoctorDashboardPage() {
 
       {/* LOADING STATE (Skeletons) */}
       {isLoading && !data && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm animate-pulse space-y-3"
-              >
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-                <div className="h-3 bg-gray-100 rounded w-3/4"></div>
-              </div>
-            ))}
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm animate-pulse space-y-4">
-            <div className="h-6 bg-gray-200 rounded w-1/4"></div>
-            <div className="h-10 bg-gray-100 rounded w-full"></div>
-            <div className="h-10 bg-gray-100 rounded w-full"></div>
-            <div className="h-10 bg-gray-100 rounded w-full"></div>
-          </div>
-        </div>
+        <LoadingState label="Loading dashboard..." />
       )}
 
       {/* SUCCESS STATE */}
@@ -449,85 +386,13 @@ export default function DoctorDashboardPage() {
 
             {/* EMPTY STATE */}
             {data.recentPrescriptions.length === 0 ? (
-              <CardContent className="p-12 text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                </div>
-                <h4 className="text-base font-semibold text-gray-800">No Prescriptions Yet</h4>
-                <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                  You haven&apos;t created any prescriptions yet. Prescriptions authored by you will appear here with live tracking.
-                </p>
-              </CardContent>
+              <EmptyState title="No prescriptions yet" description="Prescriptions authored by you will appear here with live tracking." />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-gray-600">
-                  <thead className="bg-gray-50 text-xs uppercase text-gray-500 border-b border-gray-200">
-                    <tr>
-                      <th className="px-6 py-3 font-semibold">Prescription ID</th>
-                      <th className="px-6 py-3 font-semibold">Patient</th>
-                      <th className="px-6 py-3 font-semibold">Diagnosis</th>
-                      <th className="px-6 py-3 font-semibold">Medications</th>
-                      <th className="px-6 py-3 font-semibold">Status</th>
-                      <th className="px-6 py-3 font-semibold">Created Date</th>
-                      <th className="px-6 py-3 font-semibold text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {data.recentPrescriptions.map((rx) => (
-                      <tr key={rx.id} className="hover:bg-gray-50/80 transition-colors">
-                        <td className="px-6 py-4 font-mono text-xs text-gray-800 font-semibold">
-                          #{rx.id.slice(-8).toUpperCase()}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="font-medium text-gray-900">{rx.patient.name}</div>
-                          {rx.patient.contactInfo && (
-                            <div className="text-xs text-gray-400 truncate max-w-[150px]">
-                              {rx.patient.contactInfo}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 max-w-[200px] truncate text-gray-700">
-                          {rx.diagnosis}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-1.5">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
-                              {rx.prescriptionMedicines.length}{' '}
-                              {rx.prescriptionMedicines.length === 1 ? 'med' : 'meds'}
-                            </span>
-                            <span className="text-xs text-gray-500 truncate max-w-[140px]">
-                              {rx.prescriptionMedicines
-                                .map((m) => m.medicine.name)
-                                .join(', ')}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">{getStatusBadge(rx.status)}</td>
-                        <td className="px-6 py-4 text-xs text-gray-500">
-                          {formatDate(rx.createdAt)}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => setSelectedPrescription(rx)}
-                            className="text-xs h-8 px-2.5"
-                          >
-                            View
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <PrescriptionTable
+                prescriptions={data.recentPrescriptions}
+                viewerRole="DOCTOR"
+                onView={(prescription) => setSelectedPrescription(prescription as RecentPrescription)}
+              />
             )}
           </Card>
         </>

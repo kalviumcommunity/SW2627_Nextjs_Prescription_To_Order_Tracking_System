@@ -3,12 +3,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { Modal } from '@/components/ui/Modal';
-import { Spinner } from '@/components/ui/Spinner';
 import { PrescriptionData, PrescriptionDetails } from '@/components/prescriptions/PrescriptionDetails';
+import { PrescriptionStatus } from '@/components/prescriptions/PrescriptionStatus';
 
 type FulfillmentAction = 'FILLED' | 'CANNOT_FILL';
 
@@ -26,9 +28,7 @@ const actionCopy: Record<FulfillmentAction, { title: string; message: string; bu
 };
 
 function getStatusLabel(status: PrescriptionData['status']) {
-  if (status === 'FILLED') return <Badge variant="success">Filled</Badge>;
-  if (status === 'CANNOT_FILL') return <Badge variant="destructive">Cannot Fill</Badge>;
-  return <Badge variant="warning">Pending</Badge>;
+  return <PrescriptionStatus status={status} />;
 }
 
 export default function PharmacyPrescriptionDetailPage() {
@@ -115,23 +115,19 @@ export default function PharmacyPrescriptionDetailPage() {
   };
 
   if (isLoading) {
-    return <div className="flex min-h-[20rem] items-center justify-center"><Spinner size="lg" /></div>;
+    return <LoadingState label="Loading prescription details..." />;
   }
 
   if (error && !prescription) {
     return (
       <div className="space-y-6">
         <PageHeader />
-        <Card><CardContent className="p-6 text-center">
-          <h2 className="text-lg font-semibold text-red-900">Unable to load prescription</h2>
-          <p className="mt-2 text-sm text-red-700">{error}</p>
-          <Button className="mt-4" size="sm" onClick={fetchPrescription}>Try again</Button>
-        </CardContent></Card>
+        <ErrorState title="Unable to load prescription" message={error} onRetry={fetchPrescription} />
       </div>
     );
   }
 
-  if (!prescription) return null;
+  if (!prescription) return <EmptyState title="Prescription not found" description="The requested prescription is no longer available." />;
 
   const copy = selectedAction ? actionCopy[selectedAction] : null;
   return (

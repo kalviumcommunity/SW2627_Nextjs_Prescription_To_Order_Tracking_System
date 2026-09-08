@@ -3,8 +3,11 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { PrescriptionTable } from '@/components/prescriptions/PrescriptionTable';
 
 interface MedicineItem {
   id: string;
@@ -125,19 +128,6 @@ export default function DoctorPrescriptionsPage() {
     };
   }, [data?.prescriptions]);
 
-  const getStatusBadge = (status: Prescription['status']) => {
-    switch (status) {
-      case 'FILLED':
-        return <Badge variant="success">Filled</Badge>;
-      case 'PENDING':
-        return <Badge variant="warning">Pending</Badge>;
-      case 'CANNOT_FILL':
-        return <Badge variant="destructive">Cannot Fill</Badge>;
-      default:
-        return <Badge variant="default">{status}</Badge>;
-    }
-  };
-
   const formatDate = (isoString: string) => {
     try {
       const date = new Date(isoString);
@@ -186,24 +176,11 @@ export default function DoctorPrescriptionsPage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center space-y-3">
-          <h3 className="text-lg font-medium text-red-900">Unable to load prescriptions</h3>
-          <p className="text-sm text-red-700 max-w-md mx-auto">{error}</p>
-          <Button variant="primary" size="sm" onClick={fetchPrescriptions}>
-            Try Again
-          </Button>
-        </div>
+        <ErrorState title="Unable to load prescriptions" message={error} onRetry={fetchPrescriptions} />
       )}
 
       {isLoading && !data && (
-        <div className="space-y-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm animate-pulse space-y-4">
-            <div className="h-6 bg-gray-200 rounded w-1/4"></div>
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-12 bg-gray-100 rounded w-full"></div>
-            ))}
-          </div>
-        </div>
+        <LoadingState label="Loading prescriptions..." />
       )}
 
       {data && (
@@ -282,80 +259,23 @@ export default function DoctorPrescriptionsPage() {
             </CardHeader>
 
             {data.prescriptions.length === 0 ? (
-              <CardContent className="p-12 text-center space-y-3">
-                <h4 className="text-base font-semibold text-gray-800">No Prescriptions Issued</h4>
-                <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                  You have not authored any prescriptions yet. Newly created prescriptions will appear here.
-                </p>
-              </CardContent>
+              <EmptyState
+                title="No prescriptions issued"
+                description="You have not authored any prescriptions yet. Newly created prescriptions will appear here."
+                action={<Link href="/doctor/prescriptions/new"><Button size="sm">New prescription</Button></Link>}
+              />
             ) : filteredPrescriptions.length === 0 ? (
-              <CardContent className="p-8 text-center space-y-2">
-                <p className="text-sm font-medium text-gray-700">No prescriptions match your filter</p>
-                <p className="text-xs text-gray-500">
-                  Try switching the status filter tab or clearing the search query.
-                </p>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    setStatusFilter('ALL');
-                    setSearchQuery('');
-                  }}
-                  className="mt-2 text-xs"
-                >
-                  Reset Filters
-                </Button>
-              </CardContent>
+              <EmptyState
+                title="No prescriptions match your filter"
+                description="Try switching the status filter tab or clearing the search query."
+                action={<Button variant="secondary" size="sm" onClick={() => { setStatusFilter('ALL'); setSearchQuery(''); }}>Reset filters</Button>}
+              />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-gray-600">
-                  <thead className="bg-gray-50 text-xs uppercase text-gray-500 border-b border-gray-200">
-                    <tr>
-                      <th className="px-6 py-3 font-semibold">Prescription ID</th>
-                      <th className="px-6 py-3 font-semibold">Patient</th>
-                      <th className="px-6 py-3 font-semibold">Medicines</th>
-                      <th className="px-6 py-3 font-semibold">Created</th>
-                      <th className="px-6 py-3 font-semibold">Status</th>
-                      <th className="px-6 py-3 font-semibold text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {filteredPrescriptions.map((rx) => (
-                      <tr key={rx.id} className="hover:bg-gray-50/80 transition-colors">
-                        <td className="px-6 py-4 font-mono text-xs text-gray-900 font-bold">#{rx.id.slice(-8).toUpperCase()}</td>
-                        <td className="px-6 py-4">
-                          <div className="font-semibold text-gray-900">{rx.patient.name}</div>
-                          {rx.patient.age && (
-                            <div className="text-xs text-gray-500">
-                              {rx.patient.age} yrs{rx.patient.gender ? ` • ${rx.patient.gender}` : ''}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-1.5">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700">
-                              {rx.prescriptionMedicines.length}
-                            </span>
-                            <span className="text-xs text-gray-500 truncate max-w-[180px]">
-                              {rx.prescriptionMedicines.map((m) => m.medicine.name).slice(0, 2).join(', ')}
-                              {rx.prescriptionMedicines.length > 2 ? ' + more' : ''}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-xs text-gray-500">{formatDate(rx.createdAt)}</td>
-                        <td className="px-6 py-4">{getStatusBadge(rx.status)}</td>
-                        <td className="px-6 py-4 text-right">
-                          <Link href={`/doctor/prescriptions/${rx.id}`}>
-                            <Button variant="secondary" size="sm" className="text-xs h-8 px-3">
-                              View Details
-                            </Button>
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <PrescriptionTable
+                prescriptions={filteredPrescriptions}
+                viewerRole="DOCTOR"
+                hrefFor={(prescription) => `/doctor/prescriptions/${prescription.id}`}
+              />
             )}
           </Card>
         </div>

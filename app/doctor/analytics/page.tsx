@@ -5,41 +5,16 @@ import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { LoadingState } from '@/components/ui/LoadingState';
 
 interface AnalyticsData {
   doctor: {
-    id: string;
-    specialization: string;
-    licenseNumber: string;
-    phone: string;
-  };
-  summary: {
-    totalPrescriptions: number;
-    filledPrescriptions: number;
-    pendingPrescriptions: number;
-    cannotFillPrescriptions: number;
-    overallFillRate: number;
-  };
-  statusBreakdown: Array<{
-    status: 'FILLED' | 'PENDING' | 'CANNOT_FILL';
-    count: number;
+    return <LoadingState label="Loading clinical analytics..." className="mx-auto max-w-7xl" />;
     percentage: number;
   }>;
   medicineFillRates: Array<{
-    medicineId: string;
-    name: string;
-    genericName: string;
-    stockStatus: boolean;
-    prescribed: number;
-    filled: number;
-    pending: number;
-    cannotFill: number;
-    fillRate: number;
-  }>;
-  topMedicines: Array<{
-    medicineId: string;
-    name: string;
-    genericName: string;
+    return <ErrorState title="Clinical analytics unavailable" message={error} onRetry={fetchAnalytics} className="mx-auto mt-12 max-w-2xl" />;
     stockStatus: boolean;
     prescriptionsCount: number;
     percentageOfTotal: number;
