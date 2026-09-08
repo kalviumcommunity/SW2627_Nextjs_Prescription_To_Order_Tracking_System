@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import { UserRole, PrescriptionStatus } from "@prisma/client";
 import { authorizeRequest, getPharmacyProfileByUserId, sanitizePrescriptionForPharmacy } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { apiError, apiSuccess, notFoundError } from "@/lib/api-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +18,7 @@ export async function GET() {
     // 2. Fetch pharmacy profile
     const pharmacyProfile = await getPharmacyProfileByUserId(user.id);
     if (!pharmacyProfile) {
-      return NextResponse.json(
-        { error: "Pharmacy profile not found." },
-        { status: 404 }
-      );
+      return apiError(notFoundError("Pharmacy profile not found."));
     }
 
     // 3. Fetch pending prescriptions for fulfillment queue
@@ -53,21 +50,14 @@ export async function GET() {
     // 4. Sanitize prescriptions - strictly remove diagnosis for pharmacy privacy
     const sanitizedQueue = prescriptions.map((rx) => sanitizePrescriptionForPharmacy(rx));
 
-    return NextResponse.json(
-      {
-        pharmacy: {
-          id: pharmacyProfile.id,
-          pharmacyName: pharmacyProfile.pharmacyName,
-        },
-        queue: sanitizedQueue,
+    return apiSuccess({
+      pharmacy: {
+        id: pharmacyProfile.id,
+        pharmacyName: pharmacyProfile.pharmacyName,
       },
-      { status: 200 }
-    );
+      queue: sanitizedQueue,
+    });
   } catch (error) {
-    console.error("Error fetching pharmacy queue:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve fulfillment queue." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve fulfillment queue.");
   }
 }

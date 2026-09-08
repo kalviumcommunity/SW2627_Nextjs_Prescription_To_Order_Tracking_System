@@ -1,56 +1,40 @@
-import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
-import { authorizeRequest, getPharmacyProfileByUserId } from "@/lib/permissions";
-import { fulfillPharmacyPrescription, FulfillmentAction, isFulfillmentAction } from "@/lib/pharmacy-service";
+import { AuthUser, authorizeRequest } from "@/lib/permissions";
+import { fulfillPrescription } from "@/lib/pharmacy-service";
+import { apiError, apiSuccess, errorFromResult, validationError } from "@/lib/api-errors";
 
 export const dynamic = "force-dynamic";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
+  options?: { userOverride?: AuthUser | null }
 ) {
   try {
-    const auth = await authorizeRequest({ allowedRoles: [UserRole.PHARMACY] });
-    if (auth.errorResponse) {
-      return auth.errorResponse;
+    const auth = await authorizeRequest({
+      allowedRoles: [UserRole.PHARMACY],
+      ...(options?.userOverride !== undefined ? { userOverride: options.userOverride } : {}),
+    });
+    if (auth.errorResponse) return auth.errorResponse;
+
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return apiError(validationError("Invalid request payload. Expected JSON object with action."));
     }
 
-    const pharmacyProfile = await getPharmacyProfileByUserId(auth.user.id);
-    if (!pharmacyProfile) {
-      return NextResponse.json({ error: "Pharmacy profile not found." }, { status: 404 });
+    const { action, notes } = body as { action?: unknown; notes?: unknown };
+    const result = await fulfillPrescription(auth.user.id, params.id, {
+      action: typeof action === "string" ? action : "",
+      notes: typeof notes === "string" ? notes : null,
+    });
+
+    if ("error" in result) {
+      return apiError(errorFromResult(result));
     }
 
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
-    }
-
-    const action = (body as { action?: unknown })?.action;
-    if (!isFulfillmentAction(action)) {
-      return NextResponse.json(
-        { error: "Action must be FILLED or CANNOT_FILL." },
-        { status: 400 }
-      );
-    }
-
-    const result = await fulfillPharmacyPrescription(
-      params.id,
-      pharmacyProfile.id,
-      action as FulfillmentAction
-    );
-
-    if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: result.statusCode });
-    }
-
-    return NextResponse.json({ prescription: result.prescription }, { status: 200 });
+    return apiSuccess(result);
   } catch (error) {
     console.error("Error fulfilling pharmacy prescription:", error);
-    return NextResponse.json(
-      { error: "Failed to fulfill prescription." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to fulfill prescription.");
   }
 }

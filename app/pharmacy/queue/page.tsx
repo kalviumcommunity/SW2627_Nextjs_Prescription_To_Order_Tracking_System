@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function PharmacyQueuePage() {
@@ -7,4 +8,11 @@ export default function PharmacyQueuePage() {
       <EmptyState title="Fulfillment queue is not available yet" description="Pending prescriptions will appear here when the pharmacy queue workflow is enabled." />
     </div>
   );
+=======
+import { redirect } from 'next/navigation';
+
+export default function PharmacyQueuePage() {
+  redirect('/pharmacy/prescriptions');
+>>>>>>> b4f1fa2b98e4279b1dac767894fa76c5a43470c5
 }
+

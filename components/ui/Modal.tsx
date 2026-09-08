@@ -2,28 +2,55 @@
 
 import React, { useEffect } from 'react';
 
+export type ModalMaxWidth = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
+
 interface ModalProps {
-  open: boolean;
+  isOpen: boolean;
+  onClose: () => void;
   title: string;
   children: React.ReactNode;
+<<<<<<< HEAD
   onClose: () => void;
   closeDisabled?: boolean;
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 export function Modal({ open, title, children, onClose, closeDisabled = false, size = 'md' }: ModalProps) {
+=======
+  footer?: React.ReactNode;
+  maxWidth?: ModalMaxWidth;
+}
+
+const MAX_WIDTH_MAP: Record<ModalMaxWidth, string> = {
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-lg',
+  xl: 'max-w-xl',
+  '2xl': 'max-w-2xl',
+  '3xl': 'max-w-3xl',
+  '4xl': 'max-w-4xl',
+  '5xl': 'max-w-5xl',
+};
+
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  footer,
+  maxWidth = 'md',
+}: ModalProps) {
+>>>>>>> b4f1fa2b98e4279b1dac767894fa76c5a43470c5
   useEffect(() => {
-    if (!open) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !closeDisabled) onClose();
+    document.body.style.overflow = isOpen ? 'hidden' : 'unset';
+    return () => {
+      document.body.style.overflow = 'unset';
     };
+  }, [isOpen]);
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [closeDisabled, onClose, open]);
+  if (!isOpen) return null;
 
-  if (!open) return null;
+  const maxWidthClass = MAX_WIDTH_MAP[maxWidth] || 'max-w-md';
 
   const sizes = {
     sm: 'max-w-sm',
@@ -33,25 +60,35 @@ export function Modal({ open, title, children, onClose, closeDisabled = false, s
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-gray-950/50 p-4"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !closeDisabled) onClose();
-      }}
-    >
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
       <div
+<<<<<<< HEAD
         className={`w-full ${sizes[size]} max-h-[90vh] overflow-y-auto rounded-lg bg-white shadow-xl`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirmation-modal-title"
+=======
+        className={`bg-white rounded-2xl shadow-2xl ${maxWidthClass} w-full border border-gray-200 transition-all transform duration-200 overflow-hidden`}
+>>>>>>> b4f1fa2b98e4279b1dac767894fa76c5a43470c5
       >
-        <div className="border-b border-gray-200 px-5 py-4">
-          <h2 id="confirmation-modal-title" className="text-lg font-semibold text-gray-900">
-            {title}
-          </h2>
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50/50">
+          <h2 className="text-lg font-bold text-gray-900 tracking-tight">{title}</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            aria-label="Close modal"
+          >
+            <span aria-hidden="true" className="text-xl leading-none">
+              &times;
+            </span>
+          </button>
         </div>
-        <div className="px-5 py-5">{children}</div>
+        <div className="p-6 max-h-[75vh] overflow-y-auto">{children}</div>
+        {footer && (
+          <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-3 rounded-b-2xl">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

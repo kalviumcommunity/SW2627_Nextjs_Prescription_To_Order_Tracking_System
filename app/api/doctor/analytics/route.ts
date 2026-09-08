@@ -1,7 +1,4 @@
-import { NextResponse } from "next/server";
-import { UserRole } from "@prisma/client";
-import { authorizeRequest } from "@/lib/permissions";
-import { getDoctorAnalytics } from "@/lib/doctor-service";
+import { getDoctorAnalyticsResponse } from "@/lib/doctor-analytics-route";
 
 export const dynamic = "force-dynamic";
 
@@ -16,30 +13,5 @@ export const dynamic = "force-dynamic";
  * - Strictly isolates records to the authenticated doctor
  */
 export async function GET() {
-  try {
-    // 1. Role-based authorization guard (DOCTOR only)
-    const auth = await authorizeRequest({ allowedRoles: [UserRole.DOCTOR] });
-    if (auth.errorResponse) {
-      return auth.errorResponse;
-    }
-
-    const { user } = auth;
-
-    // 2. Compute live derived analytics for the authenticated doctor
-    const analyticsData = await getDoctorAnalytics(user.id);
-    if ("error" in analyticsData && analyticsData.error) {
-      return NextResponse.json(
-        { error: analyticsData.error },
-        { status: analyticsData.statusCode }
-      );
-    }
-
-    return NextResponse.json(analyticsData, { status: 200 });
-  } catch (error) {
-    console.error("Error fetching doctor analytics:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve clinical performance analytics." },
-      { status: 500 }
-    );
-  }
+  return getDoctorAnalyticsResponse();
 }
