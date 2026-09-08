@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { authorizeRequest } from "@/lib/permissions";
 import { getDoctorPatientsRoster } from "@/lib/doctor-service";
+import { apiError, apiSuccess, errorFromResult } from "@/lib/api-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -23,18 +23,11 @@ export async function GET() {
     // 2. Fetch isolated patient roster for this doctor
     const rosterData = await getDoctorPatientsRoster(user.id);
     if ("error" in rosterData && rosterData.error) {
-      return NextResponse.json(
-        { error: rosterData.error },
-        { status: rosterData.statusCode }
-      );
+      return apiError(errorFromResult(rosterData));
     }
 
-    return NextResponse.json(rosterData, { status: 200 });
+    return apiSuccess(rosterData);
   } catch (error) {
-    console.error("Error fetching doctor patients:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve doctor patients roster." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve doctor patients roster.");
   }
 }

@@ -323,7 +323,11 @@ async function runPatientBackendVerification() {
     "Alice querying Robert's prescription returns HTTP 404 Not Found"
   );
   const robert404Body = await aliceCrossRobertDetail.json();
-  assert.strictEqual(robert404Body.error, "Prescription not found.", "Safe error message returned");
+  assert.deepStrictEqual(
+    robert404Body.error,
+    { code: "NOT_FOUND", message: "Prescription not found." },
+    "Safe standardized error returned"
+  );
   console.log("  ✓ Alice attempting to access Robert's Rx detail -> HTTP 404 Not Found (zero data leakage)");
 
   // Alice tries to access David's prescription

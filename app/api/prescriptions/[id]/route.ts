@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { authorizeRequest, canUserAccessPrescription } from "@/lib/permissions";
+import { apiError, apiSuccess, forbiddenError, notFoundError, validationError } from "@/lib/api-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +18,7 @@ export async function GET(
     const prescriptionId = params.id;
 
     if (!prescriptionId) {
-      return NextResponse.json(
-        { error: "Prescription ID is required." },
-        { status: 400 }
-      );
+      return apiError(validationError("Prescription ID is required."));
     }
 
     // 2. Enforce granular resource ownership & access permissions
@@ -29,27 +26,14 @@ export async function GET(
 
     if (!accessCheck.allowed) {
       if (accessCheck.reason === "Prescription not found.") {
-        return NextResponse.json(
-          { error: "Prescription not found." },
-          { status: 404 }
-        );
+        return apiError(notFoundError("Prescription not found."));
       }
 
-      return NextResponse.json(
-        { error: accessCheck.reason || "Forbidden. Access to this prescription is denied." },
-        { status: 403 }
-      );
+      return apiError(forbiddenError(accessCheck.reason || "Forbidden. Access to this prescription is denied."));
     }
 
-    return NextResponse.json(
-      { prescription: accessCheck.prescription },
-      { status: 200 }
-    );
+    return apiSuccess({ prescription: accessCheck.prescription });
   } catch (error) {
-    console.error("Error retrieving prescription:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve prescription." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve prescription.");
   }
 }

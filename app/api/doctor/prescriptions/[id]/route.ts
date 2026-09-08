@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { authorizeRequest } from "@/lib/permissions";
 import { getDoctorPrescriptionDetail } from "@/lib/doctor-service";
+import { apiError, apiSuccess, errorFromResult } from "@/lib/api-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -17,21 +17,11 @@ export async function GET(
 
     const result = await getDoctorPrescriptionDetail(auth.user.id, params.id);
     if ("error" in result && result.error) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: result.statusCode }
-      );
+      return apiError(errorFromResult(result));
     }
 
-    return NextResponse.json(
-      { prescription: result.prescription },
-      { status: 200 }
-    );
+    return apiSuccess({ prescription: result.prescription });
   } catch (error) {
-    console.error("Error fetching doctor prescription detail:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve prescription details." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve prescription details.");
   }
 }

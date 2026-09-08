@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@prisma/client";
+import { conflictError } from "@/lib/api-errors";
 
 const BCRYPT_SALT_ROUNDS = 10;
 
@@ -47,7 +48,7 @@ export async function registerDoctor(input: DoctorRegistrationInput) {
   });
 
   if (existingUser) {
-    throw new Error("A user with this email already exists.");
+    throw conflictError("A user with this email already exists.");
   }
 
   // Check if license number is already registered
@@ -56,7 +57,7 @@ export async function registerDoctor(input: DoctorRegistrationInput) {
   });
 
   if (existingLicense) {
-    throw new Error("A doctor with this license number already exists.");
+    throw conflictError("A doctor with this license number already exists.");
   }
 
   const hashedPassword = await hashPassword(input.password);
@@ -96,7 +97,7 @@ export async function registerPatient(input: PatientRegistrationInput) {
   });
 
   if (existingUser) {
-    throw new Error("A user with this email already exists.");
+    throw conflictError("A user with this email already exists.");
   }
 
   const hashedPassword = await hashPassword(input.password);

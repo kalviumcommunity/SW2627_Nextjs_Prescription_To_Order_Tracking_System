@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { AuthUser, authorizeRequest } from "@/lib/permissions";
 import { getPharmacyAnalytics } from "@/lib/pharmacy-service";
+import { apiError, apiSuccess, errorFromResult } from "@/lib/api-errors";
 
 export async function getPharmacyAnalyticsResponse(userOverride?: AuthUser | null) {
   try {
@@ -13,11 +13,10 @@ export async function getPharmacyAnalyticsResponse(userOverride?: AuthUser | nul
 
     const result = await getPharmacyAnalytics(auth.user.id);
     if ("error" in result) {
-      return NextResponse.json({ error: result.error }, { status: result.statusCode });
+      return apiError(errorFromResult(result));
     }
-    return NextResponse.json(result, { status: 200 });
+    return apiSuccess(result);
   } catch (error) {
-    console.error("Error fetching pharmacy analytics:", error);
-    return NextResponse.json({ error: "Failed to retrieve pharmacy analytics." }, { status: 500 });
+    return apiError(error, "Failed to retrieve pharmacy analytics.");
   }
 }

@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { resetPasswordWithToken } from "@/lib/password-reset-service";
+import { apiError, apiSuccess, validationError } from "@/lib/api-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -9,32 +9,20 @@ export async function POST(req: Request) {
     const { email, token, password } = body;
 
     if (!email || !token || !password) {
-      return NextResponse.json(
-        { error: "Email, reset token, and new password are required." },
-        { status: 400 }
-      );
+      return apiError(validationError("Email, reset token, and new password are required."));
     }
 
     if (typeof password !== "string" || password.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters long." },
-        { status: 400 }
-      );
+      return apiError(validationError("Password must be at least 8 characters long."));
     }
 
     const result = await resetPasswordWithToken(email, token, password);
-    return NextResponse.json(result, { status: 200 });
+    return apiSuccess(result);
   } catch (error: unknown) {
-    const err = error as Error;
-    console.error("Reset password error:", err.message);
-
-    if (err.message.includes("Invalid or expired")) {
-      return NextResponse.json({ error: err.message }, { status: 400 });
+    if (error instanceof Error && error.message.includes("Invalid or expired")) {
+      return apiError(validationError(error.message));
     }
 
-    return NextResponse.json(
-      { error: "Failed to reset password. Please try requesting a new reset link." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to reset password. Please try requesting a new reset link.");
   }
 }

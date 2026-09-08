@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { PrescriptionStatus } from "@prisma/client";
 import { getAdminPrescriptionsResponse } from "@/lib/admin-service";
+import { apiError, validationError } from "@/lib/api-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +14,11 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const statusParam = searchParams.get("status");
+  if (statusParam && !Object.values(PrescriptionStatus).includes(statusParam as PrescriptionStatus)) {
+    return apiError(validationError("Invalid prescription status filter."));
+  }
   const status =
-    statusParam && Object.values(PrescriptionStatus).includes(statusParam as PrescriptionStatus)
+    statusParam
       ? (statusParam as PrescriptionStatus)
       : undefined;
 

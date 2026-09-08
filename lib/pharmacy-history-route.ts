@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { AuthUser, authorizeRequest } from "@/lib/permissions";
 import { getPharmacyHistory } from "@/lib/pharmacy-service";
+import { apiError, apiSuccess, errorFromResult } from "@/lib/api-errors";
 
 export async function getPharmacyHistoryResponse(userOverride?: AuthUser | null) {
   try {
@@ -13,11 +13,10 @@ export async function getPharmacyHistoryResponse(userOverride?: AuthUser | null)
 
     const result = await getPharmacyHistory(auth.user.id);
     if ("error" in result) {
-      return NextResponse.json({ error: result.error }, { status: result.statusCode });
+      return apiError(errorFromResult(result));
     }
-    return NextResponse.json(result, { status: 200 });
+    return apiSuccess(result);
   } catch (error) {
-    console.error("Error fetching pharmacy history:", error);
-    return NextResponse.json({ error: "Failed to retrieve pharmacy history." }, { status: 500 });
+    return apiError(error, "Failed to retrieve pharmacy history.");
   }
 }

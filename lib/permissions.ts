@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { apiError, ApplicationError, AuthorizationError } from "@/lib/api-errors";
 
 export interface AuthUser {
   id: string;
@@ -10,18 +10,7 @@ export interface AuthUser {
   name?: string | null;
 }
 
-/**
- * Standard Application Authorization Error
- */
-export class AuthorizationError extends Error {
-  public statusCode: 401 | 403;
-
-  constructor(message: string, statusCode: 401 | 403 = 403) {
-    super(message);
-    this.name = "AuthorizationError";
-    this.statusCode = statusCode;
-  }
-}
+export { AuthorizationError } from "@/lib/api-errors";
 
 /**
  * Retrieves the current authenticated user from session.
@@ -78,7 +67,7 @@ export async function authorizeRequest(options?: {
   userOverride?: AuthUser | null;
 }): Promise<
   | { user: AuthUser; errorResponse: null }
-  | { user: null; errorResponse: NextResponse }
+  | { user: null; errorResponse: ReturnType<typeof apiError> }
 > {
   try {
     const user = options?.allowedRoles
@@ -87,21 +76,13 @@ export async function authorizeRequest(options?: {
 
     return { user, errorResponse: null };
   } catch (error) {
-    if (error instanceof AuthorizationError) {
-      return {
-        user: null,
-        errorResponse: NextResponse.json(
-          { error: error.message },
-          { status: error.statusCode }
-        ),
-      };
-    }
-
     return {
       user: null,
-      errorResponse: NextResponse.json(
-        { error: "An unexpected authorization error occurred." },
-        { status: 500 }
+      errorResponse: apiError(
+        error instanceof ApplicationError
+          ? error
+          : new ApplicationError("INTERNAL_SERVER_ERROR", "Authorization failed.", 500, false),
+        "Authorization failed."
       ),
     };
   }

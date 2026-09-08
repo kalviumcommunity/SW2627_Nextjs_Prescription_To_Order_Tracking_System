@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { requestPasswordReset } from "@/lib/password-reset-service";
+import { apiError, apiSuccess, validationError } from "@/lib/api-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -9,20 +9,12 @@ export async function POST(req: Request) {
     const { email } = body;
 
     if (!email || typeof email !== "string") {
-      return NextResponse.json(
-        { error: "A valid email address is required." },
-        { status: 400 }
-      );
+      return apiError(validationError("A valid email address is required."));
     }
 
     const result = await requestPasswordReset(email);
-    return NextResponse.json(result, { status: 200 });
+    return apiSuccess(result);
   } catch (error: unknown) {
-    const err = error as Error;
-    console.error("Forgot password request error:", err.message);
-    return NextResponse.json(
-      { error: "An error occurred while processing your password reset request." },
-      { status: 500 }
-    );
+    return apiError(error, "An error occurred while processing your password reset request.");
   }
 }
