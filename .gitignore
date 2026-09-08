@@ -41,3 +41,4 @@ next-env.d.ts
 
 # temp archives
 swc.tgz
+node_modules

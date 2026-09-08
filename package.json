@@ -9,6 +9,7 @@
     "lint": "next lint",
     "test:auth": "tsx -r dotenv/config scripts/test-auth.ts",
     "test:authz": "tsx -r dotenv/config scripts/test-authorization.ts",
+    "test:api-errors": "tsx scripts/test-api-errors.ts",
     "test:doctor": "tsx -r dotenv/config scripts/test-doctor-api.ts",
     "test:doctor:create": "tsx -r dotenv/config scripts/test-doctor-create-prescription.ts",
     "test:doctor:analytics": "tsx -r dotenv/config scripts/test-doctor-analytics.ts",

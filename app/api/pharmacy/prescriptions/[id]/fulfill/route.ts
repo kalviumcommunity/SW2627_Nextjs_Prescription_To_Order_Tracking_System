@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { AuthUser, authorizeRequest } from "@/lib/permissions";
 import { fulfillPrescription } from "@/lib/pharmacy-service";
+import { apiError, apiSuccess, errorFromResult, validationError } from "@/lib/api-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ export async function PATCH(
 
     const body = await request.json().catch(() => null);
     if (!body || typeof body !== "object") {
-      return NextResponse.json({ error: "Invalid request payload. Expected JSON object with action." }, { status: 400 });
+      return apiError(validationError("Invalid request payload. Expected JSON object with action."));
     }
 
     const { action, notes } = body as { action?: unknown; notes?: unknown };
@@ -29,12 +29,12 @@ export async function PATCH(
     });
 
     if ("error" in result) {
-      return NextResponse.json({ error: result.error }, { status: result.statusCode });
+      return apiError(errorFromResult(result));
     }
 
-    return NextResponse.json(result, { status: 200 });
+    return apiSuccess(result);
   } catch (error) {
     console.error("Error fulfilling pharmacy prescription:", error);
-    return NextResponse.json({ error: "Failed to fulfill prescription." }, { status: 500 });
+    return apiError(error, "Failed to fulfill prescription.");
   }
 }
