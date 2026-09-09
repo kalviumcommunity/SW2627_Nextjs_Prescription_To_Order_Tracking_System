@@ -1,14 +1,3 @@
-<<<<<<< HEAD
-import { EmptyState } from '@/components/ui/EmptyState';
-
-export default function PatientTrackingPage() {
-  return (
-    <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Tracking</h2>
-      <EmptyState title="No orders to track" description="Prescription order status will appear here when tracking is available." />
-    </div>
-  );
-=======
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
@@ -65,5 +54,4 @@ export default function PatientTrackingPage() {
     {isLoading && !data && <div className="flex min-h-[16rem] items-center justify-center"><Spinner size="lg" /></div>}
     {data && <Card><CardHeader><CardTitle>Fulfillment status</CardTitle><p className="mt-1 text-xs text-gray-500">Status is updated by the pharmacy.</p></CardHeader>{data.prescriptions.length === 0 ? <CardContent className="p-10 text-center"><p className="font-semibold text-gray-800">No prescriptions to track</p><p className="mt-1 text-sm text-gray-500">Your fulfillment updates will appear here.</p></CardContent> : <div className="divide-y divide-gray-100">{data.prescriptions.map((prescription) => <div key={prescription.id} className="px-6 py-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-mono text-xs font-semibold text-gray-800">#{prescription.id}</p><p className="mt-1 text-xs text-gray-500">Created {formatDate(prescription.createdAt)}</p></div><div className="flex items-center gap-3">{statusBadge(prescription.status)}<Link href={`/patient/prescriptions/${prescription.id}`} className="text-sm font-semibold text-blue-700 hover:text-blue-900">Details</Link></div></div><TrackingMessage prescription={prescription} /></div>)}</div>}</Card>}
   </div>;
->>>>>>> b4f1fa2b98e4279b1dac767894fa76c5a43470c5
 }

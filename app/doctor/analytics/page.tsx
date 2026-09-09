@@ -10,15 +10,39 @@ import { LoadingState } from '@/components/ui/LoadingState';
 
 interface AnalyticsData {
   doctor: {
-    return <LoadingState label="Loading clinical analytics..." className="mx-auto max-w-7xl" />;
+    specialization: string;
+    licenseNumber: string;
+  };
+  summary: {
+    totalPrescriptions: number;
+    overallFillRate: number;
+    filledPrescriptions: number;
+    pendingPrescriptions: number;
+  };
+  statusBreakdown: Array<{
+    status: 'PENDING' | 'FILLED' | 'CANNOT_FILL';
+    count: number;
     percentage: number;
   }>;
   medicineFillRates: Array<{
-    return <ErrorState title="Clinical analytics unavailable" message={error} onRetry={fetchAnalytics} className="mx-auto mt-12 max-w-2xl" />;
+    medicineId: string;
+    name: string;
+    genericName: string;
+    prescribed: number;
+    filled: number;
+    pending: number;
+    cannotFill: number;
+    fillRate: number;
     stockStatus: boolean;
+  }>;
+  topMedicines: Array<{
+    medicineId: string;
+    name: string;
+    genericName: string;
     prescriptionsCount: number;
     percentageOfTotal: number;
     fillRate: number;
+    stockStatus: boolean;
   }>;
   trend: Array<{
     period: string;
