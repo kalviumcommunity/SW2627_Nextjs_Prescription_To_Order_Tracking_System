@@ -22,12 +22,16 @@ jobs:
         run: |
           sed -i 's/\r$//' node_modules/.bin/* 2>/dev/null || true
           chmod -R +x node_modules/.bin || true
-          npm install --ignore-scripts
+          npm install
           sed -i 's/\r$//' node_modules/.bin/* 2>/dev/null || true
           chmod -R +x node_modules/.bin || true
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/medeasy?schema=public"
 
       - name: Generate Prisma Client
-        run: node node_modules/prisma/build/index.js generate
+        run: |
+          node node_modules/@prisma/engines/scripts/postinstall.js || true
+          node node_modules/prisma/build/index.js generate
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/medeasy?schema=public"
 
