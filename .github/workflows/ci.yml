@@ -42,7 +42,12 @@ jobs:
         run: npm run lint
 
       - name: Build project
-        run: npm run build
+        run: |
+          npm run build 2>&1 | tee next-build.log || {
+            ERR=$(tail -n 25 next-build.log)
+            echo "::error title=Next Build Failed::$ERR"
+            exit 1
+          }
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/medeasy?schema=public"
           NEXTAUTH_SECRET: "ci-secret-build-key-at-least-32-chars-long"
