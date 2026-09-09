@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { ErrorState } from '@/components/ui/ErrorState';
 
 interface StatusBreakdownItem {
   status: 'PENDING' | 'FILLED' | 'CANNOT_FILL';
@@ -66,9 +68,12 @@ export default function AdminDashboardPage() {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-            Platform Administration
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+              Platform Administration
+            </h1>
+            <Badge variant="info">Live</Badge>
+          </div>
           <p className="text-sm text-gray-500 mt-1">
             Real-time platform oversight, provider registries, and fulfillment performance metrics.
           </p>
@@ -114,34 +119,17 @@ export default function AdminDashboardPage() {
 
       {/* ERROR STATE */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-bold text-red-900">Failed to load platform dashboard</h3>
-          <p className="text-sm text-red-700 max-w-md mx-auto">{error}</p>
-          <Button variant="primary" size="sm" onClick={fetchDashboardData}>
-            Retry
-          </Button>
-        </div>
+        <ErrorState
+          title="Failed to load platform dashboard"
+          message={error}
+          onRetry={fetchDashboardData}
+        />
       )}
 
-      {/* LOADING STATE SKELETON */}
+      {/* LOADING STATE */}
       {isLoading && !data && (
-        <div className="space-y-6 animate-pulse">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded-xl" />
-            ))}
-          </div>
-          <div className="h-64 bg-gray-200 rounded-xl" />
+        <div className="py-8">
+          <LoadingState message="Loading platform dashboard..." />
         </div>
       )}
 

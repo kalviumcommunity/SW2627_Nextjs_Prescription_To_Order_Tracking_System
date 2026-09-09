@@ -1,10 +1,14 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { PrescriptionStatus } from '@/components/prescriptions/PrescriptionStatus';
 import {
   PrescriptionDetails,
   PrescriptionData,
@@ -138,19 +142,6 @@ export default function AdminPrescriptionsPage() {
     });
   }, [prescriptions, statusFilter, searchQuery]);
 
-  const getStatusBadge = (status: PrescriptionListItem['status']) => {
-    switch (status) {
-      case 'FILLED':
-        return <Badge variant="success">Filled</Badge>;
-      case 'PENDING':
-        return <Badge variant="warning">Pending</Badge>;
-      case 'CANNOT_FILL':
-        return <Badge variant="destructive">Cannot Fill</Badge>;
-      default:
-        return <Badge variant="default">{status}</Badge>;
-    }
-  };
-
   const formatDate = (isoString?: string | null) => {
     if (!isoString) return '—';
     try {
@@ -178,9 +169,12 @@ export default function AdminPrescriptionsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-            Prescription Management
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+              Prescription Management
+            </h1>
+            <Badge variant="info">Audited</Badge>
+          </div>
           <p className="text-sm text-gray-500 mt-1">
             Platform-wide audit, lifecycle tracking, and clinical compliance monitoring.
           </p>
@@ -213,23 +207,11 @@ export default function AdminPrescriptionsPage() {
 
       {/* ERROR STATE */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-bold text-red-900">Unable to load prescriptions</h3>
-          <p className="text-sm text-red-700 max-w-md mx-auto">{error}</p>
-          <Button variant="primary" size="sm" onClick={fetchPrescriptions}>
-            Retry
-          </Button>
-        </div>
+        <ErrorState
+          title="Unable to load prescriptions"
+          message={error}
+          onRetry={fetchPrescriptions}
+        />
       )}
 
       {/* FILTER TABS & SEARCH BAR */}
@@ -285,14 +267,9 @@ export default function AdminPrescriptionsPage() {
 
       {/* LOADING SKELETON */}
       {isLoading && (
-        <Card className="animate-pulse">
-          <CardContent className="p-6 space-y-4">
-            <div className="h-6 bg-gray-200 rounded w-1/4" />
-            <div className="h-12 bg-gray-100 rounded w-full" />
-            <div className="h-12 bg-gray-100 rounded w-full" />
-            <div className="h-12 bg-gray-100 rounded w-full" />
-          </CardContent>
-        </Card>
+        <div className="py-8" aria-label="loading">
+          <LoadingState message="Loading prescriptions..." />
+        </div>
       )}
 
       {/* PRESCRIPTIONS TABLE */}
@@ -328,36 +305,29 @@ export default function AdminPrescriptionsPage() {
               <tbody className="divide-y divide-gray-200">
                 {filteredPrescriptions.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                      <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto mb-3">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                      </div>
-                      <p className="text-base font-semibold text-gray-700">No prescriptions found</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {searchQuery || statusFilter !== 'ALL'
-                          ? 'Try changing the status filter or clearing your search.'
-                          : 'No prescriptions have been authored yet.'}
-                      </p>
-                      {(searchQuery || statusFilter !== 'ALL') && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            setStatusFilter('ALL');
-                            setSearchQuery('');
-                          }}
-                          className="mt-3"
-                        >
-                          Reset Filters
-                        </Button>
-                      )}
+                    <td colSpan={7} className="p-6">
+                      <EmptyState
+                        title="No prescriptions found"
+                        description={
+                          searchQuery || statusFilter !== 'ALL'
+                            ? 'Try changing the status filter or clearing your search.'
+                            : 'No prescriptions have been authored yet.'
+                        }
+                        action={
+                          (searchQuery || statusFilter !== 'ALL') ? (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => {
+                                setStatusFilter('ALL');
+                                setSearchQuery('');
+                              }}
+                            >
+                              Reset Filters
+                            </Button>
+                          ) : undefined
+                        }
+                      />
                     </td>
                   </tr>
                 ) : (
@@ -378,7 +348,7 @@ export default function AdminPrescriptionsPage() {
                         <div className="text-xs text-gray-500">{rx.doctor?.specialization || 'Clinical'}</div>
                       </td>
                       <td className="px-6 py-4 text-xs text-gray-600">{formatDate(rx.createdAt)}</td>
-                      <td className="px-6 py-4">{getStatusBadge(rx.status)}</td>
+                      <td className="px-6 py-4"><PrescriptionStatus status={rx.status} /></td>
                       <td className="px-6 py-4 text-xs text-gray-600">
                         {rx.status === 'FILLED' ? (
                           <span className="text-emerald-700 font-medium">
@@ -422,16 +392,16 @@ export default function AdminPrescriptionsPage() {
         }
       >
         {isDetailLoading && (
-          <div className="py-12 text-center space-y-3">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" />
-            <p className="text-xs text-gray-500">Loading prescription projection...</p>
+          <div className="py-8">
+            <LoadingState message="Loading prescription projection..." />
           </div>
         )}
 
         {detailError && (
-          <div className="p-4 bg-red-50 text-red-700 rounded-lg text-sm text-center">
-            {detailError}
-          </div>
+          <ErrorState
+            title="Unable to load prescription detail"
+            message={detailError}
+          />
         )}
 
         {!isDetailLoading && !detailError && selectedPrescription && (

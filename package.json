@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node node_modules/prisma/build/index.js generate && next build",
     "start": "next start",
     "lint": "next lint",
     "test:auth": "tsx -r dotenv/config scripts/test-auth.ts",
@@ -23,6 +23,8 @@
     "test:patient": "tsx -r dotenv/config scripts/test-patient-api.ts",
     "test:admin": "tsx -r dotenv/config scripts/test-admin-api.ts",
     "test:admin:frontend": "tsx scripts/test-admin-frontend.ts",
+    "test:day16-ui": "tsx scripts/test-day16-shared-ui.ts",
+    "test:day16-regression": "tsx -r dotenv/config scripts/test-day16-full-regression.ts",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate dev",
@@ -34,7 +36,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.4.1",
+    "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
     "next": "14.2.35",
     "next-auth": "^4.24.15",
@@ -51,7 +53,7 @@
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "postcss": "^8",
-    "prisma": "^6.4.1",
+    "prisma": "^6.19.3",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.23.12",
     "typescript": "^5"

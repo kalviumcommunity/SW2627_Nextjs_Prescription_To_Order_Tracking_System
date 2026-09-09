@@ -4,7 +4,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { Card, CardContent } from '@/components/ui/Card';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { EmptyState } from '@/components/ui/EmptyState';
 import {
   PrescriptionData,
   PrescriptionDetails,
@@ -56,19 +58,8 @@ export default function DoctorPrescriptionDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="h-8 w-48 animate-pulse rounded bg-gray-200" />
-          <div className="h-10 w-32 animate-pulse rounded bg-gray-200" />
-        </div>
-        <Card>
-          <CardContent className="space-y-4 p-6">
-            <div className="h-6 w-1/3 animate-pulse rounded bg-gray-200" />
-            <div className="h-20 animate-pulse rounded bg-gray-100" />
-            <div className="h-24 animate-pulse rounded bg-gray-100" />
-            <div className="h-24 animate-pulse rounded bg-gray-100" />
-          </CardContent>
-        </Card>
+      <div className="py-8">
+        <LoadingState message="Loading prescription details..." />
       </div>
     );
   }
@@ -88,20 +79,11 @@ export default function DoctorPrescriptionDetailPage() {
           </Link>
         </div>
 
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
-          <h2 className="text-lg font-semibold text-red-900">Unable to load prescription</h2>
-          <p className="mt-2 text-sm text-red-700">{error}</p>
-          <div className="mt-4 flex justify-center gap-3">
-            <Button variant="secondary" size="sm" onClick={fetchPrescription}>
-              Try again
-            </Button>
-            <Link href="/doctor/prescriptions">
-              <Button variant="primary" size="sm">
-                Return to list
-              </Button>
-            </Link>
-          </div>
-        </div>
+        <ErrorState
+          title="Unable to load prescription"
+          message={error}
+          onRetry={fetchPrescription}
+        />
       </div>
     );
   }
@@ -121,19 +103,17 @@ export default function DoctorPrescriptionDetailPage() {
           </Link>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-6 text-center">
-          <h2 className="text-lg font-semibold text-gray-900">Prescription not found</h2>
-          <p className="mt-2 text-sm text-gray-600">
-            The requested prescription could not be located or you do not have access to it.
-          </p>
-          <div className="mt-4 flex justify-center">
+        <EmptyState
+          title="Prescription not found"
+          description="The requested prescription could not be located or you do not have access to it."
+          action={
             <Link href="/doctor/prescriptions">
               <Button variant="primary" size="sm">
                 View all prescriptions
               </Button>
             </Link>
-          </div>
-        </div>
+          }
+        />
       </div>
     );
   }

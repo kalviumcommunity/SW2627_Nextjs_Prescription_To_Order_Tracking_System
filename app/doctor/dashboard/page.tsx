@@ -3,9 +3,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { PrescriptionDetails } from '@/components/prescriptions/PrescriptionDetails';
+import { PrescriptionStatus } from '@/components/prescriptions/PrescriptionStatus';
 
 interface MedicineItem {
   id: string;
@@ -96,18 +99,9 @@ export default function DoctorDashboardPage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  const getStatusBadge = (status: RecentPrescription['status']) => {
-    switch (status) {
-      case 'FILLED':
-        return <Badge variant="success">Filled</Badge>;
-      case 'PENDING':
-        return <Badge variant="warning">Pending</Badge>;
-      case 'CANNOT_FILL':
-        return <Badge variant="destructive">Cannot Fill</Badge>;
-      default:
-        return <Badge variant="default">{status}</Badge>;
-    }
-  };
+  const getStatusBadge = (status: RecentPrescription['status']) => (
+    <PrescriptionStatus status={status} />
+  );
 
   const formatDate = (isoString: string) => {
     try {
@@ -219,53 +213,18 @@ export default function DoctorDashboardPage() {
       )}
 
       {/* ERROR STATE */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-red-900">Unable to load dashboard data</h3>
-          <p className="text-sm text-red-700 max-w-md mx-auto">{error}</p>
-          <Button variant="primary" size="sm" onClick={fetchDashboardData}>
-            Try Again
-          </Button>
-        </div>
+      {error && !data && (
+        <ErrorState
+          title="Unable to load dashboard data"
+          message={error}
+          onRetry={fetchDashboardData}
+          retryLabel="Try Again"
+        />
       )}
 
-      {/* LOADING STATE (Skeletons) */}
+      {/* LOADING STATE */}
       {isLoading && !data && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="bg-white rounded-lg border border-gray-200 p-5 shadow-sm animate-pulse space-y-3"
-              >
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-                <div className="h-3 bg-gray-100 rounded w-3/4"></div>
-              </div>
-            ))}
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm animate-pulse space-y-4">
-            <div className="h-6 bg-gray-200 rounded w-1/4"></div>
-            <div className="h-10 bg-gray-100 rounded w-full"></div>
-            <div className="h-10 bg-gray-100 rounded w-full"></div>
-            <div className="h-10 bg-gray-100 rounded w-full"></div>
-          </div>
-        </div>
+        <LoadingState label="Loading clinical dashboard..." />
       )}
 
       {/* SUCCESS STATE */}
@@ -449,21 +408,18 @@ export default function DoctorDashboardPage() {
 
             {/* EMPTY STATE */}
             {data.recentPrescriptions.length === 0 ? (
-              <CardContent className="p-12 text-center space-y-3">
-                <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                </div>
-                <h4 className="text-base font-semibold text-gray-800">No Prescriptions Yet</h4>
-                <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                  You haven&apos;t created any prescriptions yet. Prescriptions authored by you will appear here with live tracking.
-                </p>
+              <CardContent className="p-8">
+                <EmptyState
+                  title="No Prescriptions Yet"
+                  description="You haven't created any prescriptions yet. Prescriptions authored by you will appear here with live tracking."
+                  action={
+                    <Link href="/doctor/prescriptions/new">
+                      <Button variant="primary" size="sm">
+                        New Prescription
+                      </Button>
+                    </Link>
+                  }
+                />
               </CardContent>
             ) : (
               <div className="overflow-x-auto">

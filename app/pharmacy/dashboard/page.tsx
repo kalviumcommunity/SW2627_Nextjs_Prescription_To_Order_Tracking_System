@@ -2,9 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { PrescriptionStatus } from '@/components/prescriptions/PrescriptionStatus';
 
 type Status = 'PENDING' | 'FILLED' | 'CANNOT_FILL';
 
@@ -28,12 +31,6 @@ interface DashboardData {
   };
   pendingCount: number;
   recentActivity: ActivityItem[];
-}
-
-function statusBadge(status: Status) {
-  const labels = { PENDING: 'Pending', FILLED: 'Filled', CANNOT_FILL: 'Cannot fill' };
-  const variants = { PENDING: 'warning', FILLED: 'success', CANNOT_FILL: 'destructive' } as const;
-  return <Badge variant={variants[status]}>{labels[status]}</Badge>;
 }
 
 function formatDate(value: string) {
@@ -65,19 +62,21 @@ export default function PharmacyDashboardPage() {
   useEffect(() => { loadDashboard(); }, [loadDashboard]);
 
   if (loading && !data) {
-    return <div className="space-y-6 animate-pulse" aria-label="Loading pharmacy dashboard">
-      <div className="h-10 bg-gray-200 rounded w-1/3" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">{[1, 2, 3, 4].map((item) => <div key={item} className="h-32 bg-gray-200 rounded-lg" />)}</div>
-      <div className="h-72 bg-gray-200 rounded-lg" />
-    </div>;
+    return (
+      <div className="py-8">
+        <LoadingState message="Loading pharmacy dashboard..." />
+      </div>
+    );
   }
 
   if (error && !data) {
-    return <div className="rounded-lg border border-red-200 bg-red-50 p-8 text-center space-y-3">
-      <h2 className="text-lg font-semibold text-red-900">Unable to load pharmacy dashboard</h2>
-      <p className="text-sm text-red-700">{error}</p>
-      <Button onClick={loadDashboard} variant="primary" size="sm">Try again</Button>
-    </div>;
+    return (
+      <ErrorState
+        title="Unable to load pharmacy dashboard"
+        message={error}
+        onRetry={loadDashboard}
+      />
+    );
   }
 
   if (!data) return null;
@@ -99,7 +98,44 @@ export default function PharmacyDashboardPage() {
     <Card>
       <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"><div><CardTitle>Recent activity</CardTitle><p className="text-xs text-gray-500 mt-1">Latest prescription activity across the pharmacy</p></div><Link href="/pharmacy/prescriptions" className="text-sm font-semibold text-blue-700 hover:text-blue-900">View queue</Link></CardHeader>
       <CardContent className="p-0">
-        {data.recentActivity.length === 0 ? <div className="p-10 text-center"><h3 className="font-semibold text-gray-900">No prescription activity yet</h3><p className="text-sm text-gray-500 mt-1">New prescriptions will appear here.</p></div> : <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-gray-50 text-xs uppercase text-gray-500"><tr><th className="px-6 py-3">Prescription</th><th className="px-6 py-3">Doctor</th><th className="px-6 py-3">Patient</th><th className="px-6 py-3">Date</th><th className="px-6 py-3">Status</th></tr></thead><tbody className="divide-y divide-gray-100">{data.recentActivity.map((item) => <tr key={item.id} className="hover:bg-gray-50"><td className="px-6 py-4"><Link href={`/pharmacy/prescriptions/${item.id}`} className="font-mono text-xs font-semibold text-blue-700 hover:underline">#{item.id.slice(-8).toUpperCase()}</Link><p className="text-xs text-gray-500 mt-1">{item.medicines.map((medicine) => medicine.medicine.name).join(', ')}</p></td><td className="px-6 py-4 text-gray-700">{item.doctor.name}</td><td className="px-6 py-4 text-gray-700">{item.patient.name}</td><td className="px-6 py-4 text-gray-600">{formatDate(item.createdAt)}</td><td className="px-6 py-4">{statusBadge(item.status)}</td></tr>)}</tbody></table></div>}
+        {data.recentActivity.length === 0 ? (
+          <div className="p-6">
+            <EmptyState
+              title="No prescription activity yet"
+              description="New prescriptions will appear here."
+            />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                <tr>
+                  <th className="px-6 py-3">Prescription</th>
+                  <th className="px-6 py-3">Doctor</th>
+                  <th className="px-6 py-3">Patient</th>
+                  <th className="px-6 py-3">Date</th>
+                  <th className="px-6 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {data.recentActivity.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <Link href={`/pharmacy/prescriptions/${item.id}`} className="font-mono text-xs font-semibold text-blue-700 hover:underline">
+                        #{item.id.slice(-8).toUpperCase()}
+                      </Link>
+                      <p className="text-xs text-gray-500 mt-1">{item.medicines.map((medicine) => medicine.medicine.name).join(', ')}</p>
+                    </td>
+                    <td className="px-6 py-4 text-gray-700">{item.doctor.name}</td>
+                    <td className="px-6 py-4 text-gray-700">{item.patient.name}</td>
+                    <td className="px-6 py-4 text-gray-600">{formatDate(item.createdAt)}</td>
+                    <td className="px-6 py-4"><PrescriptionStatus status={item.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </CardContent>
     </Card>
   </div>;

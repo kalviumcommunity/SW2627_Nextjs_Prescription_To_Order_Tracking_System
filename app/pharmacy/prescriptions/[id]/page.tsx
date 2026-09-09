@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { PrescriptionStatus } from '@/components/prescriptions/PrescriptionStatus';
 
 type Status = 'PENDING' | 'FILLED' | 'CANNOT_FILL';
 
@@ -20,12 +22,6 @@ interface Prescription {
   patient: { name: string; age: number; gender: string; contactInfo: string };
   medicines: Array<{ id: string; dosage: string; frequency: string; duration: string; medicine: { name: string; genericName: string; stockStatus: boolean } }>;
   fill: { filledAt: string; notes: string | null; pharmacy: { pharmacyName: string; phone: string } } | null;
-}
-
-function statusBadge(status: Status) {
-  const labels = { PENDING: 'Pending', FILLED: 'Filled', CANNOT_FILL: 'Cannot fill' };
-  const variants = { PENDING: 'warning', FILLED: 'success', CANNOT_FILL: 'destructive' } as const;
-  return <Badge variant={variants[status]}>{labels[status]}</Badge>;
 }
 
 function formatDate(value: string | null) {
@@ -83,13 +79,34 @@ export default function PharmacyPrescriptionDetailPage({ params }: { params: { i
     }
   };
 
-  if (loading) return <div className="space-y-6 animate-pulse" aria-label="Loading prescription details"><div className="h-8 bg-gray-200 rounded w-1/3" /><div className="h-64 bg-gray-200 rounded-lg" /><div className="h-48 bg-gray-200 rounded-lg" /></div>;
-  if (error && !prescription) return <div className="rounded-lg border border-red-200 bg-red-50 p-8 text-center space-y-3"><h1 className="text-lg font-semibold text-red-900">Unable to load prescription</h1><p className="text-sm text-red-700">{error}</p><div className="flex justify-center gap-3"><Link href="/pharmacy/prescriptions"><Button variant="secondary" size="sm">Back to queue</Button></Link>{error !== 'Prescription not found.' && <Button onClick={loadPrescription} variant="primary" size="sm">Try again</Button>}</div></div>;
+  if (loading) {
+    return (
+      <div className="py-8">
+        <LoadingState message="Loading prescription details..." />
+      </div>
+    );
+  }
+
+  if (error && !prescription) {
+    return (
+      <div className="space-y-6">
+        <Link href="/pharmacy/prescriptions" className="text-sm font-semibold text-blue-700 hover:underline">
+          &larr; Back to queue
+        </Link>
+        <ErrorState
+          title="Unable to load prescription"
+          message={error}
+          onRetry={error !== 'Prescription not found.' ? loadPrescription : undefined}
+        />
+      </div>
+    );
+  }
+
   if (!prescription) return null;
 
   return <div className="space-y-6">
     {successMessage && <div className="rounded-md bg-green-50 p-4 text-sm text-green-800 border border-green-200 font-medium">{successMessage}</div>}
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-200 pb-5"><div><Link href="/pharmacy/prescriptions" className="text-sm font-semibold text-blue-700 hover:underline">Back to prescription queue</Link><h1 className="text-2xl font-bold text-gray-900 mt-3">Prescription #{prescription.id.slice(-8).toUpperCase()}</h1><p className="text-sm text-gray-500 mt-1">Created {formatDate(prescription.createdAt)}</p></div><div>{statusBadge(prescription.status)}</div></div>
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-200 pb-5"><div><Link href="/pharmacy/prescriptions" className="text-sm font-semibold text-blue-700 hover:underline">Back to prescription queue</Link><h1 className="text-2xl font-bold text-gray-900 mt-3">Prescription #{prescription.id.slice(-8).toUpperCase()}</h1><p className="text-sm text-gray-500 mt-1">Created {formatDate(prescription.createdAt)}</p></div><div><PrescriptionStatus status={prescription.status} /></div></div>
     {prescription.status === 'PENDING' && <Card className="border-blue-200 bg-blue-50/40"><CardHeader><CardTitle className="text-blue-950">Prescription Fulfillment Actions</CardTitle></CardHeader><CardContent className="space-y-4"><p className="text-sm text-gray-700">Verify the prescription items and submit the terminal fulfillment outcome. A successful fill registers this pharmacy and creates the fulfillment record.</p><div><label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Fulfillment Notes (Optional)</label><input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional fulfillment notes" className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900" disabled={fulfilling} /></div><div className="flex flex-wrap gap-3"><Button onClick={() => setConfirmAction('FILLED')} variant="primary">Dispense &amp; Mark as Filled</Button><Button onClick={() => setConfirmAction('CANNOT_FILL')} variant="destructive">Cannot Fill Prescription</Button></div></CardContent></Card>}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><Card><CardHeader><CardTitle>Patient information</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><div><p className="text-xs uppercase font-semibold text-gray-500">Name</p><p className="font-semibold text-gray-900">{prescription.patient.name}</p></div><div className="grid grid-cols-2 gap-4"><div><p className="text-xs uppercase font-semibold text-gray-500">Age</p><p className="text-gray-700">{prescription.patient.age}</p></div><div><p className="text-xs uppercase font-semibold text-gray-500">Gender</p><p className="text-gray-700">{prescription.patient.gender}</p></div></div><div><p className="text-xs uppercase font-semibold text-gray-500">Contact</p><p className="text-gray-700 break-words">{prescription.patient.contactInfo}</p></div></CardContent></Card><Card><CardHeader><CardTitle>Doctor information</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><p className="font-semibold text-gray-900">{prescription.doctor.name}</p><p className="text-gray-500">{prescription.doctor.specialization}</p><p className="font-mono text-gray-700">{prescription.doctor.licenseNumber}</p><p className="text-gray-700 break-all">{prescription.doctor.email}</p></CardContent></Card></div>
     <Card><CardHeader><CardTitle>Medicines and directions</CardTitle></CardHeader><CardContent className="p-0"><div className="divide-y divide-gray-100">{prescription.medicines.map((item) => <div key={item.id} className="p-5 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4"><div><h2 className="font-semibold text-gray-900">{item.medicine.name}</h2><p className="text-sm text-gray-500">{item.medicine.genericName}</p></div><dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm"><div><dt className="text-xs uppercase font-semibold text-gray-500">Dosage</dt><dd className="text-gray-700 mt-1">{item.dosage}</dd></div><div><dt className="text-xs uppercase font-semibold text-gray-500">Frequency</dt><dd className="text-gray-700 mt-1">{item.frequency}</dd></div><div><dt className="text-xs uppercase font-semibold text-gray-500">Duration</dt><dd className="text-gray-700 mt-1">{item.duration}</dd></div></dl></div>)}</div></CardContent></Card>

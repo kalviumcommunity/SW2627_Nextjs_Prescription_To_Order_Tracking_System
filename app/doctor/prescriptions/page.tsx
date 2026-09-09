@@ -3,8 +3,11 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { PrescriptionStatus } from '@/components/prescriptions/PrescriptionStatus';
 
 interface MedicineItem {
   id: string;
@@ -125,19 +128,6 @@ export default function DoctorPrescriptionsPage() {
     };
   }, [data?.prescriptions]);
 
-  const getStatusBadge = (status: Prescription['status']) => {
-    switch (status) {
-      case 'FILLED':
-        return <Badge variant="success">Filled</Badge>;
-      case 'PENDING':
-        return <Badge variant="warning">Pending</Badge>;
-      case 'CANNOT_FILL':
-        return <Badge variant="destructive">Cannot Fill</Badge>;
-      default:
-        return <Badge variant="default">{status}</Badge>;
-    }
-  };
-
   const formatDate = (isoString: string) => {
     try {
       const date = new Date(isoString);
@@ -186,24 +176,15 @@ export default function DoctorPrescriptionsPage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center space-y-3">
-          <h3 className="text-lg font-medium text-red-900">Unable to load prescriptions</h3>
-          <p className="text-sm text-red-700 max-w-md mx-auto">{error}</p>
-          <Button variant="primary" size="sm" onClick={fetchPrescriptions}>
-            Try Again
-          </Button>
-        </div>
+        <ErrorState
+          title="Unable to load prescriptions"
+          message={error}
+          onRetry={fetchPrescriptions}
+        />
       )}
 
       {isLoading && !data && (
-        <div className="space-y-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm animate-pulse space-y-4">
-            <div className="h-6 bg-gray-200 rounded w-1/4"></div>
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-12 bg-gray-100 rounded w-full"></div>
-            ))}
-          </div>
-        </div>
+        <LoadingState message="Loading your prescriptions..." />
       )}
 
       {data && (
@@ -282,29 +263,37 @@ export default function DoctorPrescriptionsPage() {
             </CardHeader>
 
             {data.prescriptions.length === 0 ? (
-              <CardContent className="p-12 text-center space-y-3">
-                <h4 className="text-base font-semibold text-gray-800">No Prescriptions Issued</h4>
-                <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                  You have not authored any prescriptions yet. Newly created prescriptions will appear here.
-                </p>
+              <CardContent className="p-6">
+                <EmptyState
+                  title="No Prescriptions Issued"
+                  description="You have not authored any prescriptions yet. Newly created prescriptions will appear here."
+                  action={
+                    <Link href="/doctor/prescriptions/new">
+                      <Button variant="primary" size="sm">
+                        New Prescription
+                      </Button>
+                    </Link>
+                  }
+                />
               </CardContent>
             ) : filteredPrescriptions.length === 0 ? (
-              <CardContent className="p-8 text-center space-y-2">
-                <p className="text-sm font-medium text-gray-700">No prescriptions match your filter</p>
-                <p className="text-xs text-gray-500">
-                  Try switching the status filter tab or clearing the search query.
-                </p>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    setStatusFilter('ALL');
-                    setSearchQuery('');
-                  }}
-                  className="mt-2 text-xs"
-                >
-                  Reset Filters
-                </Button>
+              <CardContent className="p-6">
+                <EmptyState
+                  title="No prescriptions match your filter"
+                  description="Try switching the status filter tab or clearing the search query."
+                  action={
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setStatusFilter('ALL');
+                        setSearchQuery('');
+                      }}
+                    >
+                      Reset Filters
+                    </Button>
+                  }
+                />
               </CardContent>
             ) : (
               <div className="overflow-x-auto">
@@ -343,7 +332,7 @@ export default function DoctorPrescriptionsPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-xs text-gray-500">{formatDate(rx.createdAt)}</td>
-                        <td className="px-6 py-4">{getStatusBadge(rx.status)}</td>
+                        <td className="px-6 py-4"><PrescriptionStatus status={rx.status} /></td>
                         <td className="px-6 py-4 text-right">
                           <Link href={`/doctor/prescriptions/${rx.id}`}>
                             <Button variant="secondary" size="sm" className="text-xs h-8 px-3">
