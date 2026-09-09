@@ -20,12 +20,19 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install
-          chmod -R +x node_modules/.bin
+          chmod -R +x node_modules/.bin || true
+          npm install --ignore-scripts
+          chmod -R +x node_modules/.bin || true
           npx prisma generate
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/medeasy?schema=public"
 
       - name: Run lint
         run: npm run lint
 
       - name: Build project
         run: npm run build
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/medeasy?schema=public"
+          NEXTAUTH_SECRET: "ci-secret-build-key-at-least-32-chars-long"
+          NEXTAUTH_URL: "http://localhost:3000"
