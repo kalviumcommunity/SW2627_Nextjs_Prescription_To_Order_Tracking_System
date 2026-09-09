@@ -1,0 +1,196 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// ENUMS
+// -----------------------------------------------------------------------------
+
+enum UserRole {
+  DOCTOR
+  PHARMACY
+  PATIENT
+  ADMIN
+}
+
+enum PrescriptionStatus {
+  PENDING
+  FILLED
+  CANNOT_FILL
+}
+
+// -----------------------------------------------------------------------------
+// CORE USER & ROLE PROFILES
+// -----------------------------------------------------------------------------
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      UserRole
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 1-to-1 Profile Relations
+  doctorProfile   DoctorProfile?
+  pharmacyProfile PharmacyProfile?
+  patientProfile  PatientProfile?
+
+  @@index([role])
+}
+
+model DoctorProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialization String
+  licenseNumber  String   @unique
+  phone          String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  doctorPatients DoctorPatient[]
+  prescriptions  Prescription[]
+
+  @@index([specialization])
+}
+
+model PharmacyProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pharmacyName  String
+  pharmacyType  String
+  licenseNumber String   @unique
+  phone         String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  fills Fill[]
+
+  @@index([pharmacyName])
+}
+
+model PatientProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  age         Int
+  gender      String
+  contactInfo String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  doctorPatients DoctorPatient[]
+  prescriptions  Prescription[]
+
+  @@index([name])
+}
+
+// -----------------------------------------------------------------------------
+// DOCTOR-PATIENT ROSTER (JOIN ENTITY)
+// -----------------------------------------------------------------------------
+
+model DoctorPatient {
+  id        String         @id @default(cuid())
+  doctorId  String
+  doctor    DoctorProfile  @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patientId String
+  patient   PatientProfile @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([doctorId, patientId])
+  @@index([doctorId])
+  @@index([patientId])
+}
+
+// -----------------------------------------------------------------------------
+// MEDICINE CATALOG
+// -----------------------------------------------------------------------------
+
+model Medicine {
+  id          String   @id @default(cuid())
+  name        String
+  genericName String
+  stockStatus Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  prescriptionMedicines PrescriptionMedicine[]
+
+  @@index([name])
+  @@index([genericName])
+}
+
+// -----------------------------------------------------------------------------
+// PRESCRIPTION & FULFILLMENT TRACKING
+// -----------------------------------------------------------------------------
+
+model Prescription {
+  id          String             @id @default(cuid())
+  doctorId    String
+  doctor      DoctorProfile      @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  patientId   String
+  patient     PatientProfile     @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  diagnosis   String
+  documentRef String?
+  status      PrescriptionStatus @default(PENDING)
+  filledAt    DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  // Relations
+  prescriptionMedicines PrescriptionMedicine[]
+  fill                  Fill?
+
+  @@index([doctorId])
+  @@index([patientId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model PrescriptionMedicine {
+  id             String       @id @default(cuid())
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medicineId     String
+  medicine       Medicine     @relation(fields: [medicineId], references: [id], onDelete: Restrict)
+  dosage         String
+  frequency      String
+  duration       String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([prescriptionId, medicineId])
+  @@index([prescriptionId])
+  @@index([medicineId])
+}
+
+model Fill {
+  id             String          @id @default(cuid())
+  prescriptionId String          @unique // 1-to-1 unique constraint: a prescription can have at most one successful fill
+  prescription   Prescription    @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  pharmacyId     String
+  pharmacy       PharmacyProfile @relation(fields: [pharmacyId], references: [id], onDelete: Restrict)
+  notes          String?
+  filledAt       DateTime        @default(now())
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([pharmacyId])
+  @@index([filledAt])
+}

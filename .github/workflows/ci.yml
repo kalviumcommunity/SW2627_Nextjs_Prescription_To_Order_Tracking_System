@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          sed -i 's/\r$//' node_modules/.bin/* 2>/dev/null || true
+          chmod -R +x node_modules/.bin || true
+          npm install
+          sed -i 's/\r$//' node_modules/.bin/* 2>/dev/null || true
+          chmod -R +x node_modules/.bin || true
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/medeasy?schema=public"
+
+      - name: Generate Prisma Client
+        run: |
+          node node_modules/prisma/build/index.js generate 2>&1 | tee prisma-gen.log || {
+            ERR=$(head -n 20 prisma-gen.log)
+            echo "::error title=Prisma Generate Failed::$ERR"
+            exit 1
+          }
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/medeasy?schema=public"
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Build project
+        run: |
+          npm run build 2>&1 | tee next-build.log || {
+            ERR=$(tail -n 25 next-build.log)
+            echo "::error title=Next Build Failed::$ERR"
+            exit 1
+          }
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/medeasy?schema=public"
+          NEXTAUTH_SECRET: "ci-secret-build-key-at-least-32-chars-long"
+          NEXTAUTH_URL: "http://localhost:3000"
