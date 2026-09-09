@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
+    "postinstall": "prisma generate",
     "test:auth": "tsx -r dotenv/config scripts/test-auth.ts",
     "test:authz": "tsx -r dotenv/config scripts/test-authorization.ts",
     "test:api-errors": "tsx scripts/test-api-errors.ts",
