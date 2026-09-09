@@ -30,8 +30,11 @@ jobs:
 
       - name: Generate Prisma Client
         run: |
-          node node_modules/@prisma/engines/scripts/postinstall.js || true
-          node node_modules/prisma/build/index.js generate
+          node node_modules/prisma/build/index.js generate 2>&1 | tee prisma-gen.log || {
+            ERR=$(head -n 20 prisma-gen.log)
+            echo "::error title=Prisma Generate Failed::$ERR"
+            exit 1
+          }
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/medeasy?schema=public"
 
