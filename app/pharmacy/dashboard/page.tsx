@@ -52,7 +52,8 @@ export default function PharmacyDashboardPage() {
       const response = await fetch('/api/pharmacy/dashboard', { cache: 'no-store' });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        throw new Error(body.error || `Unable to load dashboard (HTTP ${response.status})`);
+        const errorMsg = typeof body.error === "object" ? body.error?.message : body.error;
+        throw new Error(errorMsg || `Unable to load dashboard (HTTP ${response.status})`);
       }
       setData(await response.json());
     } catch (reason) {

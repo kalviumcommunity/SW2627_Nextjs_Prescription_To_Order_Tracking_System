@@ -21,6 +21,7 @@
     "test:day9": "tsx -r dotenv/config scripts/test-day9-doctor-detail-storage.ts",
     "test:patient": "tsx -r dotenv/config scripts/test-patient-api.ts",
     "test:admin": "tsx -r dotenv/config scripts/test-admin-api.ts",
+    "test:day16": "tsx -r dotenv/config scripts/test-day16-standardized-errors.ts",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate dev",

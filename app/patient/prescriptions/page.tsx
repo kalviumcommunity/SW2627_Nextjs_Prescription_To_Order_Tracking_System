@@ -32,7 +32,10 @@ export default function PatientPrescriptionsPage() {
     try {
       const response = await fetch('/api/patient/prescriptions');
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || 'Unable to load your prescriptions.');
+      if (!response.ok) {
+        const errorMsg = typeof payload.error === "object" ? payload.error?.message : payload.error;
+        throw new Error(errorMsg || 'Unable to load your prescriptions.');
+      }
       setData(payload);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Unable to load your prescriptions.');

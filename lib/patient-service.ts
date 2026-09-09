@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { PrescriptionStatus, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
@@ -7,6 +6,8 @@ import {
   getPatientProfileByUserId,
 } from "@/lib/permissions";
 import { formatDoctorDisplayName } from "@/lib/doctor-service";
+import { apiError, apiSuccess } from "@/lib/api-response";
+import { AppError, AppErrorCode, ValidationError } from "@/lib/errors";
 
 /**
  * Generates clear, non-speculative tracking descriptions for prescription fulfillment states.
@@ -473,6 +474,8 @@ export async function getPatientPrescriptionTracking(
 // -----------------------------------------------------------------------------
 // ROUTE RESPONSE WRAPPERS (With userOverride for automated test execution)
 // -----------------------------------------------------------------------------
+// 5. SECURE ROUTE HANDLER RESPONSE WRAPPERS (FOR API ENDPOINTS & INTEGRATION)
+// -----------------------------------------------------------------------------
 
 export async function getPatientDashboardResponse(userOverride?: AuthUser | null) {
   try {
@@ -486,16 +489,13 @@ export async function getPatientDashboardResponse(userOverride?: AuthUser | null
 
     const data = await getPatientDashboardData(auth.user.id);
     if ("error" in data && data.error) {
-      return NextResponse.json({ error: data.error }, { status: data.statusCode });
+      const code = data.statusCode === 404 ? AppErrorCode.NOT_FOUND : AppErrorCode.BUSINESS_RULE_ERROR;
+      return apiError(new AppError(code, data.error, data.statusCode));
     }
 
-    return NextResponse.json(data, { status: 200 });
+    return apiSuccess(data, 200);
   } catch (error) {
-    console.error("Error fetching patient dashboard:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve patient dashboard." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve patient dashboard.");
   }
 }
 
@@ -511,16 +511,13 @@ export async function getPatientPrescriptionsResponse(userOverride?: AuthUser | 
 
     const data = await getPatientPrescriptionsList(auth.user.id);
     if ("error" in data && data.error) {
-      return NextResponse.json({ error: data.error }, { status: data.statusCode });
+      const code = data.statusCode === 404 ? AppErrorCode.NOT_FOUND : AppErrorCode.BUSINESS_RULE_ERROR;
+      return apiError(new AppError(code, data.error, data.statusCode));
     }
 
-    return NextResponse.json(data, { status: 200 });
+    return apiSuccess(data, 200);
   } catch (error) {
-    console.error("Error fetching patient prescriptions:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve prescriptions." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve prescriptions.");
   }
 }
 
@@ -538,24 +535,18 @@ export async function getPatientPrescriptionDetailResponse(
     }
 
     if (!prescriptionId) {
-      return NextResponse.json(
-        { error: "Prescription ID is required." },
-        { status: 400 }
-      );
+      throw new ValidationError("Prescription ID is required.");
     }
 
     const data = await getPatientPrescriptionDetail(auth.user.id, prescriptionId);
     if ("error" in data && data.error) {
-      return NextResponse.json({ error: data.error }, { status: data.statusCode });
+      const code = data.statusCode === 404 ? AppErrorCode.NOT_FOUND : AppErrorCode.BUSINESS_RULE_ERROR;
+      return apiError(new AppError(code, data.error, data.statusCode));
     }
 
-    return NextResponse.json(data, { status: 200 });
+    return apiSuccess(data, 200);
   } catch (error) {
-    console.error("Error fetching patient prescription detail:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve prescription details." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve prescription details.");
   }
 }
 
@@ -573,23 +564,17 @@ export async function getPatientPrescriptionTrackingResponse(
     }
 
     if (!prescriptionId) {
-      return NextResponse.json(
-        { error: "Prescription ID is required." },
-        { status: 400 }
-      );
+      throw new ValidationError("Prescription ID is required.");
     }
 
     const data = await getPatientPrescriptionTracking(auth.user.id, prescriptionId);
     if ("error" in data && data.error) {
-      return NextResponse.json({ error: data.error }, { status: data.statusCode });
+      const code = data.statusCode === 404 ? AppErrorCode.NOT_FOUND : AppErrorCode.BUSINESS_RULE_ERROR;
+      return apiError(new AppError(code, data.error, data.statusCode));
     }
 
-    return NextResponse.json(data, { status: 200 });
+    return apiSuccess(data, 200);
   } catch (error) {
-    console.error("Error fetching patient prescription tracking:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve prescription tracking." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve prescription tracking.");
   }
 }

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { AppError, AppErrorCode } from "@/lib/errors";
+import { apiError } from "@/lib/api-response";
 
 export interface AuthUser {
   id: string;
@@ -12,12 +14,14 @@ export interface AuthUser {
 
 /**
  * Standard Application Authorization Error
+ * Extends AppError to integrate with the central MedEasy error architecture.
  */
-export class AuthorizationError extends Error {
+export class AuthorizationError extends AppError {
   public statusCode: 401 | 403;
 
   constructor(message: string, statusCode: 401 | 403 = 403) {
-    super(message);
+    const code = statusCode === 401 ? AppErrorCode.UNAUTHENTICATED : AppErrorCode.FORBIDDEN;
+    super(code, message, statusCode);
     this.name = "AuthorizationError";
     this.statusCode = statusCode;
   }
@@ -87,22 +91,9 @@ export async function authorizeRequest(options?: {
 
     return { user, errorResponse: null };
   } catch (error) {
-    if (error instanceof AuthorizationError) {
-      return {
-        user: null,
-        errorResponse: NextResponse.json(
-          { error: error.message },
-          { status: error.statusCode }
-        ),
-      };
-    }
-
     return {
       user: null,
-      errorResponse: NextResponse.json(
-        { error: "An unexpected authorization error occurred." },
-        { status: 500 }
-      ),
+      errorResponse: apiError(error, "An unexpected authorization error occurred."),
     };
   }
 }

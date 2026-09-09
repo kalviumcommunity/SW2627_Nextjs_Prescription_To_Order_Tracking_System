@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { authorizeRequest } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { apiError, apiSuccess } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -28,12 +28,8 @@ export async function GET() {
       orderBy: { name: "asc" },
     });
 
-    return NextResponse.json({ medicines }, { status: 200 });
+    return apiSuccess({ medicines }, 200);
   } catch (error) {
-    console.error("Error fetching medicines:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve medicines catalog." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve medicines catalog.");
   }
 }

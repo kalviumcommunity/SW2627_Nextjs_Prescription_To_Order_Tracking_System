@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma'; // Assumes alias @/lib, will check if it works or use relative path
+import { prisma } from '@/lib/prisma';
+import { apiSuccess } from '@/lib/api-response';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,18 +8,25 @@ export async function GET() {
   try {
     // Perform a minimal, safe query to check database connectivity
     await prisma.$queryRaw`SELECT 1`;
-    
-    return NextResponse.json(
+
+    return apiSuccess(
       { status: 'ok', database: 'connected' },
-      { status: 200 }
+      200
     );
   } catch (error) {
-    // Log the actual error for internal tracking (optional, but good practice)
+    // Log the actual error for internal tracking
     console.error('Database health check failed:', error);
 
     // Return a generic error message to avoid leaking sensitive information
     return NextResponse.json(
-      { status: 'unhealthy', db: 'disconnected', message: 'Unable to connect to the database.' },
+      {
+        status: 'unhealthy',
+        db: 'disconnected',
+        error: {
+          code: 'SERVICE_UNAVAILABLE',
+          message: 'Unable to connect to the database.',
+        },
+      },
       { status: 503 }
     );
   }

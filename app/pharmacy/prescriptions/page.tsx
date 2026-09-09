@@ -51,7 +51,8 @@ export default function PharmacyPrescriptionsPage() {
       const response = await fetch(`/api/pharmacy/prescriptions${query}`, { cache: 'no-store' });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        throw new Error(body.error || `Unable to load prescriptions (HTTP ${response.status})`);
+        const errorMsg = typeof body.error === "object" ? body.error?.message : body.error;
+        throw new Error(errorMsg || `Unable to load prescriptions (HTTP ${response.status})`);
       }
       setData(await response.json());
     } catch (reason) {

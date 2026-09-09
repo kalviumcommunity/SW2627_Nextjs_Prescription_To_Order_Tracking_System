@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { authorizeRequest } from "@/lib/permissions";
 import { getDoctorDashboardData } from "@/lib/doctor-service";
+import { apiError, apiSuccess } from "@/lib/api-response";
+import { AppError, AppErrorCode } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -23,18 +24,17 @@ export async function GET() {
     // 2. Fetch live metrics and recent items filtered by doctor ownership
     const dashboardData = await getDoctorDashboardData(user.id);
     if ("error" in dashboardData && dashboardData.error) {
-      return NextResponse.json(
-        { error: dashboardData.error },
-        { status: dashboardData.statusCode }
+      return apiError(
+        new AppError(
+          dashboardData.statusCode === 404 ? AppErrorCode.NOT_FOUND : AppErrorCode.BUSINESS_RULE_ERROR,
+          dashboardData.error,
+          dashboardData.statusCode
+        )
       );
     }
 
-    return NextResponse.json(dashboardData, { status: 200 });
+    return apiSuccess(dashboardData, 200);
   } catch (error) {
-    console.error("Error fetching doctor dashboard:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve doctor dashboard metrics." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve doctor dashboard metrics.");
   }
 }

@@ -1,101 +1,85 @@
-import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { registerDoctor, registerPatient } from "@/lib/auth-service";
+import { apiError, apiSuccess } from "@/lib/api-response";
+import { ValidationError, ForbiddenError } from "@/lib/errors";
+import { validateEmail, validatePassword, validateRequiredString, validateJsonBody } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await validateJsonBody<Record<string, unknown>>(req);
     const { role, email, password, ...profileData } = body;
 
     if (!email || !password || !role) {
-      return NextResponse.json(
-        { error: "Email, password, and role are required fields." },
-        { status: 400 }
-      );
+      throw new ValidationError("Email, password, and role are required fields.");
     }
 
-    if (typeof password !== "string" || password.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters long." },
-        { status: 400 }
-      );
-    }
+    const validatedEmail = validateEmail(email);
+    const validatedPassword = validatePassword(password, 8);
 
     // Direct registration is restricted to Doctor and Patient (Pharmacy is pre-provisioned, Admin is seeded)
     if (role === UserRole.ADMIN || role === UserRole.PHARMACY) {
-      return NextResponse.json(
-        { error: "Direct registration for Admin and Pharmacy roles is not allowed." },
-        { status: 403 }
-      );
+      throw new ForbiddenError("Direct registration for Admin and Pharmacy roles is not allowed.");
     }
 
     if (role === UserRole.DOCTOR) {
-      const { specialization, licenseNumber, phone } = profileData;
-      if (!specialization || !licenseNumber || !phone) {
-        return NextResponse.json(
-          { error: "Specialization, licenseNumber, and phone are required for doctor registration." },
-          { status: 400 }
-        );
-      }
+      const specialization = validateRequiredString(
+        profileData.specialization,
+        "Specialization"
+      );
+      const licenseNumber = validateRequiredString(
+        profileData.licenseNumber,
+        "licenseNumber"
+      );
+      const phone = validateRequiredString(profileData.phone, "phone");
 
       const doctor = await registerDoctor({
-        email,
-        password,
+        email: validatedEmail,
+        password: validatedPassword,
         specialization,
         licenseNumber,
         phone,
       });
 
-      return NextResponse.json(
+      return apiSuccess(
         { message: "Doctor registered successfully.", user: doctor },
-        { status: 201 }
+        201
       );
     }
 
     if (role === UserRole.PATIENT) {
-      const { name, age, gender, contactInfo } = profileData;
-      if (!name || age === undefined || !gender || !contactInfo) {
-        return NextResponse.json(
-          { error: "Name, age, gender, and contactInfo are required for patient registration." },
-          { status: 400 }
-        );
+      const name = validateRequiredString(profileData.name, "Name");
+      if (profileData.age === undefined || profileData.age === null || profileData.age === "") {
+        throw new ValidationError("Age is required for patient registration.");
       }
+      const ageNum = Number(profileData.age);
+      if (isNaN(ageNum) || ageNum <= 0) {
+        throw new ValidationError("Age must be a valid positive number.");
+      }
+      const gender = validateRequiredString(profileData.gender, "Gender");
+      const contactInfo = validateRequiredString(
+        profileData.contactInfo,
+        "ContactInfo"
+      );
 
       const patient = await registerPatient({
-        email,
-        password,
+        email: validatedEmail,
+        password: validatedPassword,
         name,
-        age: Number(age),
+        age: ageNum,
         gender,
         contactInfo,
       });
 
-      return NextResponse.json(
+      return apiSuccess(
         { message: "Patient registered successfully.", user: patient },
-        { status: 201 }
+        201
       );
     }
 
-    return NextResponse.json(
-      { error: `Unsupported role: ${role}` },
-      { status: 400 }
-    );
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error("Registration error:", err.message);
-
-    if (err.message?.includes("already exists")) {
-      return NextResponse.json(
-        { error: err.message },
-        { status: 409 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: "An unexpected error occurred during registration." },
-      { status: 500 }
-    );
+    throw new ValidationError(`Unsupported role: ${role}`);
+  } catch (error) {
+    return apiError(error, "An unexpected error occurred during registration.");
   }
 }

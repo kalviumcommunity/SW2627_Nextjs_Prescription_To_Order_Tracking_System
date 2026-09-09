@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
 import { PrescriptionStatus, UserRole } from "@prisma/client";
 import { authorizeRequest } from "@/lib/permissions";
 import { getPharmacyPrescriptions } from "@/lib/pharmacy-service";
+import { apiError, apiSuccess } from "@/lib/api-response";
+import { AppError, AppErrorCode, ValidationError } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -14,19 +15,21 @@ export async function GET(request: Request) {
     const hasStatus = searchParams.has("status");
     const statusValue = searchParams.get("status");
     if (hasStatus && (!statusValue || !Object.values(PrescriptionStatus).includes(statusValue as PrescriptionStatus))) {
-      return NextResponse.json(
-        { error: "Invalid status. Use PENDING, FILLED, or CANNOT_FILL." },
-        { status: 400 }
-      );
+      throw new ValidationError("Invalid status. Use PENDING, FILLED, or CANNOT_FILL.");
     }
 
     const result = await getPharmacyPrescriptions(auth.user.id, statusValue as PrescriptionStatus | undefined);
     if ("error" in result) {
-      return NextResponse.json({ error: result.error }, { status: result.statusCode });
+      return apiError(
+        new AppError(
+          result.statusCode === 404 ? AppErrorCode.NOT_FOUND : AppErrorCode.BUSINESS_RULE_ERROR,
+          result.error,
+          result.statusCode
+        )
+      );
     }
-    return NextResponse.json(result, { status: 200 });
+    return apiSuccess(result, 200);
   } catch (error) {
-    console.error("Error fetching pharmacy prescriptions:", error);
-    return NextResponse.json({ error: "Failed to retrieve pharmacy prescriptions." }, { status: 500 });
+    return apiError(error, "Failed to retrieve pharmacy prescriptions.");
   }
 }

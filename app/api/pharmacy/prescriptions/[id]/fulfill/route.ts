@@ -1,7 +1,9 @@
-import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { AuthUser, authorizeRequest } from "@/lib/permissions";
 import { fulfillPrescription } from "@/lib/pharmacy-service";
+import { apiError, apiSuccess } from "@/lib/api-response";
+import { AppError, AppErrorCode, ValidationError } from "@/lib/errors";
+import { validateJsonBody } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 
@@ -17,24 +19,32 @@ export async function PATCH(
     });
     if (auth.errorResponse) return auth.errorResponse;
 
-    const body = await request.json().catch(() => null);
-    if (!body || typeof body !== "object") {
-      return NextResponse.json({ error: "Invalid request payload. Expected JSON object with action." }, { status: 400 });
+    if (!params?.id) {
+      throw new ValidationError("Prescription ID is required.");
     }
 
-    const { action, notes } = body as { action?: unknown; notes?: unknown };
+    const body = await validateJsonBody<Record<string, unknown>>(request);
+    const { action, notes } = body;
+
     const result = await fulfillPrescription(auth.user.id, params.id, {
       action: typeof action === "string" ? action : "",
       notes: typeof notes === "string" ? notes : null,
     });
 
     if ("error" in result) {
-      return NextResponse.json({ error: result.error }, { status: result.statusCode });
+      const code =
+        result.statusCode === 404
+          ? AppErrorCode.NOT_FOUND
+          : result.statusCode === 409
+          ? AppErrorCode.CONFLICT
+          : result.statusCode === 400
+          ? AppErrorCode.VALIDATION_ERROR
+          : AppErrorCode.BUSINESS_RULE_ERROR;
+      return apiError(new AppError(code, result.error || "Prescription fulfillment failed.", result.statusCode));
     }
 
-    return NextResponse.json(result, { status: 200 });
+    return apiSuccess(result, 200);
   } catch (error) {
-    console.error("Error fulfilling pharmacy prescription:", error);
-    return NextResponse.json({ error: "Failed to fulfill prescription." }, { status: 500 });
+    return apiError(error, "Failed to fulfill prescription.");
   }
 }

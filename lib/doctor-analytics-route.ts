@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { AuthUser, authorizeRequest } from "@/lib/permissions";
 import { getDoctorAnalytics } from "@/lib/doctor-service";
+import { apiError, apiSuccess } from "@/lib/api-response";
+import { AppError, AppErrorCode } from "@/lib/errors";
 
 export async function getDoctorAnalyticsResponse(userOverride?: AuthUser | null) {
   try {
@@ -15,18 +16,17 @@ export async function getDoctorAnalyticsResponse(userOverride?: AuthUser | null)
 
     const analyticsData = await getDoctorAnalytics(auth.user.id);
     if ("error" in analyticsData && analyticsData.error) {
-      return NextResponse.json(
-        { error: analyticsData.error },
-        { status: analyticsData.statusCode }
+      return apiError(
+        new AppError(
+          analyticsData.statusCode === 404 ? AppErrorCode.NOT_FOUND : AppErrorCode.BUSINESS_RULE_ERROR,
+          analyticsData.error,
+          analyticsData.statusCode
+        )
       );
     }
 
-    return NextResponse.json(analyticsData, { status: 200 });
+    return apiSuccess(analyticsData, 200);
   } catch (error) {
-    console.error("Error fetching doctor analytics:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve clinical performance analytics." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve clinical performance analytics.");
   }
 }

@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { authorizeRequest } from "@/lib/permissions";
 import {
@@ -8,6 +7,8 @@ import {
   ALLOWED_PRESCRIPTION_EXTENSIONS,
   MAX_PRESCRIPTION_FILE_SIZE,
 } from "@/lib/storage";
+import { apiError, apiSuccess } from "@/lib/api-response";
+import { ValidationError } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -30,19 +31,13 @@ export async function POST(req: Request) {
     try {
       formData = await req.formData();
     } catch {
-      return NextResponse.json(
-        { error: "Invalid multipart form data in request body." },
-        { status: 400 }
-      );
+      throw new ValidationError("Invalid multipart form data in request body.");
     }
 
     const file = formData.get("file") || formData.get("document");
 
     if (!file || typeof file === "string" || !(file instanceof Blob)) {
-      return NextResponse.json(
-        { error: "File is required. Please attach a valid document file." },
-        { status: 400 }
-      );
+      throw new ValidationError("File is required. Please attach a valid document file.");
     }
 
     // 3. Extract File Properties
@@ -52,20 +47,14 @@ export async function POST(req: Request) {
 
     // 4. File Size & Type Validation
     if (size === 0) {
-      return NextResponse.json(
-        { error: "File cannot be empty." },
-        { status: 400 }
-      );
+      throw new ValidationError("File cannot be empty.");
     }
 
     if (size > MAX_PRESCRIPTION_FILE_SIZE) {
-      return NextResponse.json(
-        {
-          error: `File size exceeds the allowed limit of ${Math.round(
-            MAX_PRESCRIPTION_FILE_SIZE / (1024 * 1024)
-          )}MB.`,
-        },
-        { status: 400 }
+      throw new ValidationError(
+        `File size exceeds the allowed limit of ${Math.round(
+          MAX_PRESCRIPTION_FILE_SIZE / (1024 * 1024)
+        )}MB.`
       );
     }
 
@@ -85,10 +74,7 @@ export async function POST(req: Request) {
     );
 
     if (!validation.valid) {
-      return NextResponse.json(
-        { error: validation.error || "File validation failed." },
-        { status: 400 }
-      );
+      throw new ValidationError(validation.error || "File validation failed.");
     }
 
     // 5. Upload to Cloud Storage Abstraction Layer
@@ -99,7 +85,7 @@ export async function POST(req: Request) {
       size,
     });
 
-    return NextResponse.json(
+    return apiSuccess(
       {
         success: true,
         documentRef: uploadResult.documentRef,
@@ -108,13 +94,9 @@ export async function POST(req: Request) {
         mimeType: uploadResult.mimeType,
         url: uploadResult.url,
       },
-      { status: 201 }
+      201
     );
   } catch (error) {
-    console.error("Prescription document upload failed:", error);
-    return NextResponse.json(
-      { error: "Failed to upload prescription document to storage." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to upload prescription document to storage.");
   }
 }

@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { authorizeRequest } from "@/lib/permissions";
 import { getDoctorPrescriptionDetail } from "@/lib/doctor-service";
+import { apiError, apiSuccess } from "@/lib/api-response";
+import { AppError, AppErrorCode, ValidationError } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -15,23 +16,23 @@ export async function GET(
       return auth.errorResponse;
     }
 
-    const result = await getDoctorPrescriptionDetail(auth.user.id, params.id);
-    if ("error" in result && result.error) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: result.statusCode }
-      );
+    if (!params?.id) {
+      throw new ValidationError("Prescription ID is required.");
     }
 
-    return NextResponse.json(
-      { prescription: result.prescription },
-      { status: 200 }
-    );
+    const result = await getDoctorPrescriptionDetail(auth.user.id, params.id);
+    if ("error" in result && result.error) {
+      const code =
+        result.statusCode === 404
+          ? AppErrorCode.NOT_FOUND
+          : result.statusCode === 403
+          ? AppErrorCode.FORBIDDEN
+          : AppErrorCode.BUSINESS_RULE_ERROR;
+      return apiError(new AppError(code, result.error, result.statusCode));
+    }
+
+    return apiSuccess({ prescription: result.prescription }, 200);
   } catch (error) {
-    console.error("Error fetching doctor prescription detail:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve prescription details." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve prescription details.");
   }
 }

@@ -65,7 +65,8 @@ export default function NewPrescriptionPage() {
         const response = await fetch('/api/doctor/roster');
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
-          throw new Error(payload.error || 'Unable to load patient roster.');
+          const errorMsg = typeof payload.error === "object" ? payload.error?.message : payload.error;
+          throw new Error(errorMsg || 'Unable to load patient roster.');
         }
 
         const data = await response.json();
@@ -86,7 +87,8 @@ export default function NewPrescriptionPage() {
         const response = await fetch('/api/doctor/medicines');
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
-          throw new Error(payload.error || 'Unable to load medicine catalog.');
+          const errorMsg = typeof payload.error === "object" ? payload.error?.message : payload.error;
+          throw new Error(errorMsg || 'Unable to load medicine catalog.');
         }
 
         const data = await response.json();
@@ -245,15 +247,16 @@ export default function NewPrescriptionPage() {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
+        const errorMsg = typeof data.error === "object" ? data.error?.message : data.error;
         if (response.status === 401 || response.status === 403) {
-          throw new Error(data.error || 'You are not authorized to create prescriptions.');
+          throw new Error(errorMsg || 'You are not authorized to create prescriptions.');
         }
 
         if (response.status >= 400 && response.status < 500) {
-          throw new Error(data.error || 'The prescription could not be created because the request is invalid.');
+          throw new Error(errorMsg || 'The prescription could not be created because the request is invalid.');
         }
 
-        throw new Error(data.error || 'The server encountered an issue while creating the prescription.');
+        throw new Error(errorMsg || 'The server encountered an issue while creating the prescription.');
       }
 
       setSubmitMessage({

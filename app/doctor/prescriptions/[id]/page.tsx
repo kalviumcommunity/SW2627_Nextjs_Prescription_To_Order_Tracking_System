@@ -33,7 +33,8 @@ export default function DoctorPrescriptionDetailPage() {
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(payload.error || 'Unable to load prescription details.');
+        const errorMsg = typeof payload.error === "object" ? payload.error?.message : payload.error;
+        throw new Error(errorMsg || 'Unable to load prescription details.');
       }
 
       if (!payload.prescription) {

@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { authorizeRequest } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { apiError, apiSuccess } from "@/lib/api-response";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,7 @@ export async function GET() {
       prisma.fill.count(),
     ]);
 
-    return NextResponse.json(
+    return apiSuccess(
       {
         platformStats: {
           totalUsers,
@@ -41,13 +41,9 @@ export async function GET() {
           totalFills,
         },
       },
-      { status: 200 }
+      200
     );
   } catch (error) {
-    console.error("Error fetching admin stats:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve administrative statistics." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve administrative statistics.");
   }
 }

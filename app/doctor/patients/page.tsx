@@ -38,7 +38,8 @@ export default function DoctorPatientsPage() {
       const res = await fetch('/api/doctor/patients');
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || `Failed to fetch patients (HTTP ${res.status})`);
+        const errorMsg = typeof errJson.error === "object" ? errJson.error?.message : errJson.error;
+        throw new Error(errorMsg || `Failed to fetch patients (HTTP ${res.status})`);
       }
       const json: PatientsResponse = await res.json();
       setData(json);

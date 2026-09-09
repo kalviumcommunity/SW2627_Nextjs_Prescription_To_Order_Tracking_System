@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
 import { PrescriptionStatus, UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { AuthUser, authorizeRequest } from "@/lib/permissions";
 import { formatDoctorDisplayName } from "@/lib/doctor-service";
+import { apiError, apiSuccess } from "@/lib/api-response";
+import { AppError, AppErrorCode, ValidationError } from "@/lib/errors";
 
 /**
  * Calculates a safe fulfillment rate percentage rounded to 1 decimal place.
@@ -711,13 +712,9 @@ export async function getAdminDashboardResponse(userOverride?: AuthUser | null) 
     }
 
     const data = await getAdminDashboardData();
-    return NextResponse.json(data, { status: 200 });
+    return apiSuccess(data, 200);
   } catch (error) {
-    console.error("Error retrieving admin dashboard:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve administrative dashboard metrics." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve administrative dashboard metrics.");
   }
 }
 
@@ -732,13 +729,9 @@ export async function getAdminDoctorsResponse(userOverride?: AuthUser | null) {
     }
 
     const data = await getAdminDoctorsList();
-    return NextResponse.json(data, { status: 200 });
+    return apiSuccess(data, 200);
   } catch (error) {
-    console.error("Error retrieving admin doctors list:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve administrative doctor directory." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve administrative doctor directory.");
   }
 }
 
@@ -753,13 +746,9 @@ export async function getAdminPharmacyResponse(userOverride?: AuthUser | null) {
     }
 
     const data = await getAdminPharmacyInfo();
-    return NextResponse.json(data, { status: 200 });
+    return apiSuccess(data, 200);
   } catch (error) {
-    console.error("Error retrieving admin pharmacy info:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve administrative pharmacy information." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve administrative pharmacy information.");
   }
 }
 
@@ -777,13 +766,9 @@ export async function getAdminPrescriptionsResponse(
     }
 
     const data = await getAdminPrescriptionsList(options);
-    return NextResponse.json(data, { status: 200 });
+    return apiSuccess(data, 200);
   } catch (error) {
-    console.error("Error retrieving admin prescriptions:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve platform prescriptions." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve platform prescriptions.");
   }
 }
 
@@ -801,24 +786,18 @@ export async function getAdminPrescriptionDetailResponse(
     }
 
     if (!prescriptionId || typeof prescriptionId !== "string") {
-      return NextResponse.json(
-        { error: "Prescription ID is required." },
-        { status: 400 }
-      );
+      throw new ValidationError("Prescription ID is required.");
     }
 
     const data = await getAdminPrescriptionDetail(prescriptionId);
     if ("error" in data && data.error) {
-      return NextResponse.json({ error: data.error }, { status: data.statusCode });
+      const code = data.statusCode === 404 ? AppErrorCode.NOT_FOUND : AppErrorCode.BUSINESS_RULE_ERROR;
+      return apiError(new AppError(code, data.error, data.statusCode));
     }
 
-    return NextResponse.json(data, { status: 200 });
+    return apiSuccess(data, 200);
   } catch (error) {
-    console.error("Error retrieving admin prescription detail:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve prescription detail projection." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve prescription detail projection.");
   }
 }
 
@@ -833,12 +812,8 @@ export async function getAdminAnalyticsResponse(userOverride?: AuthUser | null) 
     }
 
     const data = await getAdminAnalyticsData();
-    return NextResponse.json(data, { status: 200 });
+    return apiSuccess(data, 200);
   } catch (error) {
-    console.error("Error retrieving admin analytics:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve platform analytics." },
-      { status: 500 }
-    );
+    return apiError(error, "Failed to retrieve platform analytics.");
   }
 }
