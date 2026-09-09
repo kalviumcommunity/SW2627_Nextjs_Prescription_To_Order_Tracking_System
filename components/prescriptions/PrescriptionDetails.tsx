@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { PrescriptionStatus } from './PrescriptionStatus';
 
 export interface PrescriptionMedicineItem {
   id?: string;
@@ -100,18 +100,6 @@ export function PrescriptionDetails({
     }
   };
 
-  const getStatusBadge = (status: PrescriptionData['status']) => {
-    switch (status) {
-      case 'FILLED':
-        return <Badge variant="success">Filled</Badge>;
-      case 'CANNOT_FILL':
-        return <Badge variant="destructive">Cannot Fill</Badge>;
-      case 'PENDING':
-      default:
-        return <Badge variant="warning">Pending</Badge>;
-    }
-  };
-
   const doctorName =
     prescription.doctor?.name ||
     prescription.doctor?.user?.name ||
@@ -136,7 +124,9 @@ export function PrescriptionDetails({
               #{prescription.id}
             </h3>
           </div>
-          <div className="flex items-center gap-2">{getStatusBadge(prescription.status)}</div>
+          <div className="flex items-center gap-2">
+            <PrescriptionStatus status={prescription.status} />
+          </div>
         </div>
         <p className="mt-1 text-xs text-gray-500">Created: {formatDate(prescription.createdAt)}</p>
       </div>

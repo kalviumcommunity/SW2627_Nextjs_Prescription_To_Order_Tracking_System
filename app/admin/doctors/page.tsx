@@ -4,6 +4,9 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
 
 interface DoctorItem {
   id: string;
@@ -157,23 +160,11 @@ export default function AdminDoctorsPage() {
 
       {/* ERROR STATE */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-bold text-red-900">Unable to load doctor directory</h3>
-          <p className="text-sm text-red-700 max-w-md mx-auto">{error}</p>
-          <Button variant="primary" size="sm" onClick={fetchDoctors}>
-            Retry
-          </Button>
-        </div>
+        <ErrorState
+          title="Unable to load doctor directory"
+          message={error}
+          onRetry={fetchDoctors}
+        />
       )}
 
       {/* SEARCH AND FILTER BAR */}
@@ -207,14 +198,9 @@ export default function AdminDoctorsPage() {
 
       {/* LOADING SKELETON */}
       {isLoading && (
-        <Card className="animate-pulse">
-          <CardContent className="p-6 space-y-4">
-            <div className="h-6 bg-gray-200 rounded w-1/4" />
-            <div className="h-10 bg-gray-100 rounded w-full" />
-            <div className="h-10 bg-gray-100 rounded w-full" />
-            <div className="h-10 bg-gray-100 rounded w-full" />
-          </CardContent>
-        </Card>
+        <div className="py-8" aria-label="loading">
+          <LoadingState message="Loading doctor directory..." />
+        </div>
       )}
 
       {/* DOCTORS TABLE */}
@@ -247,31 +233,26 @@ export default function AdminDoctorsPage() {
               <tbody className="divide-y divide-gray-200">
                 {filteredDoctors.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                      <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto mb-3">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                          />
-                        </svg>
-                      </div>
-                      <p className="text-base font-semibold text-gray-700">No doctors found</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {searchQuery ? 'Try adjusting your search criteria.' : 'No registered doctors in the system.'}
-                      </p>
-                      {searchQuery && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setSearchQuery('')}
-                          className="mt-3"
-                        >
-                          Clear Search
-                        </Button>
-                      )}
+                    <td colSpan={6} className="p-6">
+                      <EmptyState
+                        title="No doctors found"
+                        description={
+                          searchQuery
+                            ? 'Try adjusting your search criteria.'
+                            : 'No registered doctors in the system.'
+                        }
+                        action={
+                          searchQuery ? (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setSearchQuery('')}
+                            >
+                              Clear Search
+                            </Button>
+                          ) : undefined
+                        }
+                      />
                     </td>
                   </tr>
                 ) : (

@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Spinner } from '@/components/ui/Spinner';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { PrescriptionStatus } from '@/components/prescriptions/PrescriptionStatus';
 
 type Status = 'PENDING' | 'FILLED' | 'CANNOT_FILL';
 
@@ -21,12 +23,6 @@ interface Prescription {
 interface PatientPrescriptionsResponse {
   patient: { id: string; name: string };
   prescriptions: Prescription[];
-}
-
-function statusBadge(status: Status) {
-  if (status === 'FILLED') return <Badge variant="success">Filled</Badge>;
-  if (status === 'CANNOT_FILL') return <Badge variant="destructive">Cannot Fill</Badge>;
-  return <Badge variant="warning">Pending</Badge>;
 }
 
 function formatDate(value: string) {
@@ -58,18 +54,22 @@ export default function PatientDashboardPage() {
   }, [fetchPrescriptions]);
 
   if (isLoading && !data) {
-    return <div className="flex min-h-[20rem] items-center justify-center"><Spinner size="lg" /></div>;
+    return (
+      <div className="py-8">
+        <LoadingState message="Loading your health overview..." />
+      </div>
+    );
   }
 
   if (error && !data) {
     return (
       <div className="space-y-6">
         <PageHeading />
-        <Card><CardContent className="p-8 text-center">
-          <h2 className="text-lg font-semibold text-red-900">Unable to load dashboard</h2>
-          <p className="mt-2 text-sm text-red-700">{error}</p>
-          <Button className="mt-4" size="sm" onClick={fetchPrescriptions}>Try again</Button>
-        </CardContent></Card>
+        <ErrorState
+          title="Unable to load dashboard"
+          message={error}
+          onRetry={fetchPrescriptions}
+        />
       </div>
     );
   }
@@ -98,13 +98,18 @@ export default function PatientDashboardPage() {
           <Link href="/patient/prescriptions" className="text-sm font-semibold text-blue-700 hover:text-blue-900">View all</Link>
         </CardHeader>
         {recent.length === 0 ? (
-          <CardContent className="p-10 text-center"><p className="font-semibold text-gray-800">No prescriptions yet</p><p className="mt-1 text-sm text-gray-500">Prescriptions issued to you will appear here.</p></CardContent>
+          <CardContent className="p-6">
+            <EmptyState
+              title="No prescriptions yet"
+              description="Prescriptions issued to you will appear here."
+            />
+          </CardContent>
         ) : (
           <div className="divide-y divide-gray-100">
             {recent.map((prescription) => (
               <div key={prescription.id} className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0"><p className="font-mono text-xs font-semibold text-gray-800">#{prescription.id}</p><p className="mt-1 truncate text-sm text-gray-700">{prescription.doctor.specialization} · {prescription.prescriptionMedicines.map((item) => item.medicine.name).join(', ') || 'No medicines listed'}</p><p className="mt-1 text-xs text-gray-500">Created {formatDate(prescription.createdAt)}</p></div>
-                <div className="flex items-center gap-3">{statusBadge(prescription.status)}<Link href={`/patient/prescriptions/${prescription.id}`} className="text-sm font-semibold text-blue-700 hover:text-blue-900">View</Link></div>
+                <div className="flex items-center gap-3"><PrescriptionStatus status={prescription.status} /><Link href={`/patient/prescriptions/${prescription.id}`} className="text-sm font-semibold text-blue-700 hover:text-blue-900">View</Link></div>
               </div>
             ))}
           </div>

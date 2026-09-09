@@ -23,6 +23,7 @@
     "test:patient": "tsx -r dotenv/config scripts/test-patient-api.ts",
     "test:admin": "tsx -r dotenv/config scripts/test-admin-api.ts",
     "test:admin:frontend": "tsx scripts/test-admin-frontend.ts",
+    "test:day16-ui": "tsx scripts/test-day16-shared-ui.ts",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate dev",
