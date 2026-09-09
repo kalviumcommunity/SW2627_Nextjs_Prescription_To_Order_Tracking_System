@@ -4,21 +4,16 @@ import React, { useEffect } from 'react';
 
 export type ModalMaxWidth = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
 
-interface ModalProps {
-  isOpen: boolean;
+export interface ModalProps {
+  isOpen?: boolean;
+  open?: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-<<<<<<< HEAD
-  onClose: () => void;
-  closeDisabled?: boolean;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
-}
-
-export function Modal({ open, title, children, onClose, closeDisabled = false, size = 'md' }: ModalProps) {
-=======
   footer?: React.ReactNode;
   maxWidth?: ModalMaxWidth;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  closeDisabled?: boolean;
 }
 
 const MAX_WIDTH_MAP: Record<ModalMaxWidth, string> = {
@@ -32,50 +27,52 @@ const MAX_WIDTH_MAP: Record<ModalMaxWidth, string> = {
   '5xl': 'max-w-5xl',
 };
 
+const SIZE_MAP: Record<'sm' | 'md' | 'lg' | 'xl', string> = {
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-2xl',
+  xl: 'max-w-4xl',
+};
+
 export function Modal({
   isOpen,
+  open,
   onClose,
   title,
   children,
   footer,
-  maxWidth = 'md',
+  maxWidth,
+  size = 'md',
+  closeDisabled = false,
 }: ModalProps) {
->>>>>>> b4f1fa2b98e4279b1dac767894fa76c5a43470c5
+  const showModal = isOpen ?? open ?? false;
+
   useEffect(() => {
-    document.body.style.overflow = isOpen ? 'hidden' : 'unset';
+    document.body.style.overflow = showModal ? 'hidden' : 'unset';
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen]);
+  }, [showModal]);
 
-  if (!isOpen) return null;
+  if (!showModal) return null;
 
-  const maxWidthClass = MAX_WIDTH_MAP[maxWidth] || 'max-w-md';
-
-  const sizes = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-2xl',
-    xl: 'max-w-4xl',
-  };
+  const maxWidthClass = maxWidth
+    ? MAX_WIDTH_MAP[maxWidth] || 'max-w-md'
+    : SIZE_MAP[size] || 'max-w-md';
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
       <div
-<<<<<<< HEAD
-        className={`w-full ${sizes[size]} max-h-[90vh] overflow-y-auto rounded-lg bg-white shadow-xl`}
+        className={`bg-white rounded-2xl shadow-2xl ${maxWidthClass} w-full border border-gray-200 transition-all transform duration-200 overflow-hidden max-h-[90vh] flex flex-col`}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="confirmation-modal-title"
-=======
-        className={`bg-white rounded-2xl shadow-2xl ${maxWidthClass} w-full border border-gray-200 transition-all transform duration-200 overflow-hidden`}
->>>>>>> b4f1fa2b98e4279b1dac767894fa76c5a43470c5
       >
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50/50">
           <h2 className="text-lg font-bold text-gray-900 tracking-tight">{title}</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            disabled={closeDisabled}
+            className="text-gray-400 hover:text-gray-600 disabled:opacity-50 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
             aria-label="Close modal"
           >
             <span aria-hidden="true" className="text-xl leading-none">
@@ -83,7 +80,7 @@ export function Modal({
             </span>
           </button>
         </div>
-        <div className="p-6 max-h-[75vh] overflow-y-auto">{children}</div>
+        <div className="p-6 overflow-y-auto flex-1">{children}</div>
         {footer && (
           <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-3 rounded-b-2xl">
             {footer}
