@@ -15,14 +15,14 @@ export async function GET(
     }
 
     const { user } = auth;
-    const prescriptionId = params.id;
+    const prescriptionId = params?.id;
 
-    if (!prescriptionId) {
+    if (!prescriptionId || typeof prescriptionId !== "string" || !prescriptionId.trim()) {
       return apiError(validationError("Prescription ID is required."));
     }
 
     // 2. Enforce granular resource ownership & access permissions
-    const accessCheck = await canUserAccessPrescription(user, prescriptionId);
+    const accessCheck = await canUserAccessPrescription(user, prescriptionId.trim());
 
     if (!accessCheck.allowed) {
       if (accessCheck.reason === "Prescription not found.") {

@@ -25,6 +25,7 @@
     "test:admin:frontend": "tsx scripts/test-admin-frontend.ts",
     "test:day16-ui": "tsx scripts/test-day16-shared-ui.ts",
     "test:day16-regression": "tsx -r dotenv/config scripts/test-day16-full-regression.ts",
+    "test:day17-security": "tsx -r dotenv/config scripts/test-day17-backend-security.ts",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "db:migrate": "prisma migrate dev",

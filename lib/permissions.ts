@@ -163,8 +163,12 @@ export async function canUserAccessPrescription(
   reason?: string;
   prescription?: Record<string, unknown>;
 }> {
+  if (!prescriptionId || typeof prescriptionId !== "string" || !prescriptionId.trim()) {
+    return { allowed: false, reason: "Prescription not found." };
+  }
+
   const prescription = await prisma.prescription.findUnique({
-    where: { id: prescriptionId },
+    where: { id: prescriptionId.trim() },
     include: {
       doctor: {
         select: {

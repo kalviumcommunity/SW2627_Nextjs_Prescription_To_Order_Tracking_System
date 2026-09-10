@@ -214,7 +214,7 @@ async function runDoctorIntegrationVerification() {
   const unauthPatientsRes = await doctorPatientsHandler();
   assert(unauthPatientsRes.status === 401, "GET /api/doctor/patients returns 401 for unauthenticated requests");
 
-  const unauthPrescriptionsRes = await doctorPrescriptionsHandler();
+  const unauthPrescriptionsRes = await doctorPrescriptionsHandler(new Request("http://localhost/api/doctor/prescriptions"));
   assert(unauthPrescriptionsRes.status === 401, "GET /api/doctor/prescriptions returns 401 for unauthenticated requests");
 
   // ---------------------------------------------------------------------------
