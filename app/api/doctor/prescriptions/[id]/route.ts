@@ -1,7 +1,7 @@
 import { UserRole } from "@prisma/client";
 import { authorizeRequest } from "@/lib/permissions";
 import { getDoctorPrescriptionDetail } from "@/lib/doctor-service";
-import { apiError, apiSuccess, errorFromResult } from "@/lib/api-errors";
+import { apiError, apiSuccess, errorFromResult, validationError } from "@/lib/api-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,11 @@ export async function GET(
       return auth.errorResponse;
     }
 
-    const result = await getDoctorPrescriptionDetail(auth.user.id, params.id);
+    if (!params?.id || typeof params.id !== "string" || !params.id.trim()) {
+      return apiError(validationError("Prescription ID is required."));
+    }
+
+    const result = await getDoctorPrescriptionDetail(auth.user.id, params.id.trim());
     if ("error" in result && result.error) {
       return apiError(errorFromResult(result));
     }

@@ -17,15 +17,21 @@ export async function PATCH(
     });
     if (auth.errorResponse) return auth.errorResponse;
 
+    if (!params?.id || typeof params.id !== "string" || !params.id.trim()) {
+      return apiError(validationError("Prescription ID is required."));
+    }
+
     const body = await request.json().catch(() => null);
-    if (!body || typeof body !== "object") {
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
       return apiError(validationError("Invalid request payload. Expected JSON object with action."));
     }
 
+    // Whitelist only action and notes fields.
+    // Client-supplied pharmacyId or status overrides are discarded.
     const { action, notes } = body as { action?: unknown; notes?: unknown };
-    const result = await fulfillPrescription(auth.user.id, params.id, {
-      action: typeof action === "string" ? action : "",
-      notes: typeof notes === "string" ? notes : null,
+    const result = await fulfillPrescription(auth.user.id, params.id.trim(), {
+      action: typeof action === "string" ? action.trim() : "",
+      notes: typeof notes === "string" ? notes.trim() || null : null,
     });
 
     if ("error" in result) {

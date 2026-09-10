@@ -5,18 +5,31 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { email, token, password } = body;
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return apiError(validationError("Invalid request payload. Expected JSON object."));
+    }
 
-    if (!email || !token || !password) {
+    const { email, token, password } = body as Record<string, unknown>;
+
+    if (
+      !email ||
+      typeof email !== "string" ||
+      !email.trim() ||
+      !token ||
+      typeof token !== "string" ||
+      !token.trim() ||
+      !password ||
+      typeof password !== "string"
+    ) {
       return apiError(validationError("Email, reset token, and new password are required."));
     }
 
-    if (typeof password !== "string" || password.length < 8) {
+    if (password.length < 8) {
       return apiError(validationError("Password must be at least 8 characters long."));
     }
 
-    const result = await resetPasswordWithToken(email, token, password);
+    const result = await resetPasswordWithToken(email.toLowerCase().trim(), token.trim(), password);
     return apiSuccess(result);
   } catch (error: unknown) {
     if (error instanceof Error && error.message.includes("Invalid or expired")) {

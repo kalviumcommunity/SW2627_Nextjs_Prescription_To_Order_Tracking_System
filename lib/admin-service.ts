@@ -791,11 +791,11 @@ export async function getAdminPrescriptionDetailResponse(
       return auth.errorResponse;
     }
 
-    if (!prescriptionId || typeof prescriptionId !== "string") {
+    if (!prescriptionId || typeof prescriptionId !== "string" || !prescriptionId.trim()) {
       return apiError(validationError("Prescription ID is required."));
     }
 
-    const data = await getAdminPrescriptionDetail(prescriptionId);
+    const data = await getAdminPrescriptionDetail(prescriptionId.trim());
     if ("error" in data && data.error) {
       return apiError(errorFromResult(data));
     }
