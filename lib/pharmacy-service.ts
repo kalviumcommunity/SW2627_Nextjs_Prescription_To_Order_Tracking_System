@@ -112,11 +112,17 @@ export function isFulfillmentAction(value: unknown): value is FulfillmentAction 
 export interface FulfillPrescriptionInput { action: "FILLED" | "CANNOT_FILL" | string; notes?: string | null; }
 
 export async function fulfillPrescription(userId: string, prescriptionId: string, input: FulfillPrescriptionInput) {
+  if (!prescriptionId || typeof prescriptionId !== "string" || !prescriptionId.trim()) {
+    return { error: "Prescription ID is required.", statusCode: 400 as const };
+  }
   const pharmacy = await getPharmacyOrError(userId);
   if ("error" in pharmacy) return pharmacy;
   if (!input || typeof input !== "object" || !input.action) return { error: "Action is required. Must be 'FILLED' or 'CANNOT_FILL'.", statusCode: 400 as const };
   const { action, notes } = input;
   if (action !== "FILLED" && action !== "CANNOT_FILL") return { error: "Invalid action. Must be 'FILLED' or 'CANNOT_FILL'.", statusCode: 400 as const };
+  if (notes && typeof notes === "string" && notes.trim().length > 1000) {
+    return { error: "Notes must not exceed 1000 characters.", statusCode: 400 as const };
+  }
   try {
     return await prisma.$transaction(async (tx) => {
       const existing = await tx.prescription.findUnique({ where: { id: prescriptionId }, select: { id: true, status: true } });

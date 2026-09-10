@@ -91,7 +91,7 @@ async function runDoctorApiTestSuite() {
   }
   console.log("  ✓ GET /api/doctor/patients enforces 401 Unauthorized for unauthenticated requests");
 
-  const unauthPrescriptions = await doctorPrescriptionsHandler();
+  const unauthPrescriptions = await doctorPrescriptionsHandler(new Request("http://localhost/api/doctor/prescriptions"));
   if (unauthPrescriptions.status !== 401) {
     throw new Error(`❌ Expected 401 from unauthenticated /api/doctor/prescriptions, got ${unauthPrescriptions.status}`);
   }

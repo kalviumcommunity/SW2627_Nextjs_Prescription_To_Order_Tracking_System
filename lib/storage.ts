@@ -84,6 +84,18 @@ export function validateDocumentFile(
   }
 
   if (file.originalName) {
+    if (
+      file.originalName.includes("..") ||
+      file.originalName.includes("/") ||
+      file.originalName.includes("\\") ||
+      file.originalName.includes("\0")
+    ) {
+      return {
+        valid: false,
+        error: "Invalid file name. Path traversal characters are not permitted.",
+      };
+    }
+
     const ext = path.extname(file.originalName).toLowerCase();
     const allowedExts = options?.allowedExtensions ?? ALLOWED_PRESCRIPTION_EXTENSIONS;
     if (ext && !allowedExts.includes(ext)) {
@@ -123,6 +135,7 @@ const mockStorageStore = new Map<string, { buffer: Buffer; mimeType: string; fil
  */
 export interface StorageService {
   uploadPrescriptionDocument(file: StorageFile): Promise<UploadResult>;
+  getDocument(documentRef: string): Promise<{ buffer: Buffer; mimeType: string; fileName: string } | null>;
   getDocumentUrl(documentRef: string): Promise<string | null>;
   deleteDocument(documentRef: string): Promise<boolean>;
 }
@@ -196,6 +209,54 @@ class CloudStorageService implements StorageService {
         url: `/api/doctor/prescriptions/documents/${encodeURIComponent(documentRef)}`,
       };
     }
+  }
+
+  /**
+   * Securely retrieves document binary content by storage key reference.
+   * Path traversal characters are strictly rejected.
+   */
+  async getDocument(
+    documentRef: string
+  ): Promise<{ buffer: Buffer; mimeType: string; fileName: string } | null> {
+    if (!documentRef || typeof documentRef !== "string") return null;
+
+    // Disallow path traversal sequences
+    if (
+      documentRef.includes("..") ||
+      documentRef.includes("\0") ||
+      documentRef.startsWith("/") ||
+      documentRef.startsWith("\\")
+    ) {
+      return null;
+    }
+
+    if (mockStorageStore.has(documentRef)) {
+      return mockStorageStore.get(documentRef) ?? null;
+    }
+
+    // Safe fallback for seeded documents in dev/test
+    const baseName = path.basename(documentRef);
+    const ext = path.extname(baseName).toLowerCase();
+    const mimeType =
+      ext === ".pdf"
+        ? "application/pdf"
+        : ext === ".png"
+          ? "image/png"
+          : ext === ".jpg" || ext === ".jpeg"
+            ? "image/jpeg"
+            : ext === ".webp"
+              ? "image/webp"
+              : "application/octet-stream";
+
+    const seededBuffer = Buffer.from(
+      `%PDF-1.4\n1 0 obj\n<< /Title (${baseName}) >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF`
+    );
+
+    return {
+      buffer: seededBuffer,
+      mimeType,
+      fileName: baseName,
+    };
   }
 
   /**

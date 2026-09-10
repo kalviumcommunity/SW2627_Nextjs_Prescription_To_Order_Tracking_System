@@ -529,11 +529,11 @@ export async function getPatientPrescriptionDetailResponse(
       return auth.errorResponse;
     }
 
-    if (!prescriptionId) {
+    if (!prescriptionId || typeof prescriptionId !== "string" || !prescriptionId.trim()) {
       return apiError(validationError("Prescription ID is required."));
     }
 
-    const data = await getPatientPrescriptionDetail(auth.user.id, prescriptionId);
+    const data = await getPatientPrescriptionDetail(auth.user.id, prescriptionId.trim());
     if ("error" in data && data.error) {
       return apiError(errorFromResult(data));
     }
@@ -557,11 +557,11 @@ export async function getPatientPrescriptionTrackingResponse(
       return auth.errorResponse;
     }
 
-    if (!prescriptionId) {
+    if (!prescriptionId || typeof prescriptionId !== "string" || !prescriptionId.trim()) {
       return apiError(validationError("Prescription ID is required."));
     }
 
-    const data = await getPatientPrescriptionTracking(auth.user.id, prescriptionId);
+    const data = await getPatientPrescriptionTracking(auth.user.id, prescriptionId.trim());
     if ("error" in data && data.error) {
       return apiError(errorFromResult(data));
     }
