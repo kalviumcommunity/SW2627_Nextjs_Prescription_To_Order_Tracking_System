@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { getApiErrorMessage } from '@/lib/client-errors';
 
 type Status = 'PENDING' | 'FILLED' | 'CANNOT_FILL';
 interface Trend { date?: string; week?: string; count?: number }
@@ -50,7 +51,7 @@ export default function PharmacyAnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const loadAnalytics = useCallback(async () => { setLoading(true); setError(null); try { const response = await fetch('/api/pharmacy/analytics', { cache: 'no-store' }); const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(typeof body.error === 'string' ? body.error : `Unable to load analytics (HTTP ${response.status})`); setData(body); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to load pharmacy analytics.'); } finally { setLoading(false); } }, []);
+  const loadAnalytics = useCallback(async () => { setLoading(true); setError(null); try { const response = await fetch('/api/pharmacy/analytics', { cache: 'no-store' }); const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(getApiErrorMessage(body, `Unable to load analytics (HTTP ${response.status})`)); setData(body); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to load pharmacy analytics.'); } finally { setLoading(false); } }, []);
   useEffect(() => { loadAnalytics(); }, [loadAnalytics]);
 
   if (loading && !data) return <div className="space-y-6 animate-pulse" aria-label="Loading pharmacy analytics"><div className="h-10 bg-gray-200 rounded w-1/3" /><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">{[1, 2, 3, 4, 5].map((item) => <div key={item} className="h-28 bg-gray-200 rounded-lg" />)}</div><div className="h-72 bg-gray-200 rounded-lg" /></div>;

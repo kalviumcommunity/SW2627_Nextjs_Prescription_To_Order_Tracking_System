@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { PrescriptionDetails } from '@/components/prescriptions/PrescriptionDetails';
 import { PrescriptionStatus } from '@/components/prescriptions/PrescriptionStatus';
+import { getApiErrorMessage } from '@/lib/client-errors';
 
 interface MedicineItem {
   id: string;
@@ -83,12 +84,11 @@ export default function DoctorDashboardPage() {
       const res = await fetch('/api/doctor/dashboard');
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || `Failed to fetch dashboard (HTTP ${res.status})`);
+        throw new Error(getApiErrorMessage(errJson, `Failed to fetch dashboard (HTTP ${res.status})`));
       }
       const json: DashboardData = await res.json();
       setData(json);
     } catch (err) {
-      console.error('Error loading doctor dashboard:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
     } finally {
       setIsLoading(false);

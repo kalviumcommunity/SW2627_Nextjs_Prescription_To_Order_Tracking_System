@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { getApiErrorMessage } from '@/lib/client-errors';
 
 interface StatusBreakdownItem {
   status: 'PENDING' | 'FILLED' | 'CANNOT_FILL';
@@ -47,12 +48,11 @@ export default function AdminDashboardPage() {
       const res = await fetch('/api/admin/dashboard', { cache: 'no-store' });
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || `Failed to fetch dashboard (HTTP ${res.status})`);
+        throw new Error(getApiErrorMessage(errJson, `Failed to fetch dashboard (HTTP ${res.status})`));
       }
       const json: DashboardData = await res.json();
       setData(json);
     } catch (err) {
-      console.error('Error loading admin dashboard:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
     } finally {
       setIsLoading(false);
@@ -128,7 +128,7 @@ export default function AdminDashboardPage() {
 
       {/* LOADING STATE */}
       {isLoading && !data && (
-        <div className="py-8">
+        <div className="py-8" aria-label="loading">
           <LoadingState message="Loading platform dashboard..." />
         </div>
       )}

@@ -8,6 +8,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { PrescriptionStatus } from '@/components/prescriptions/PrescriptionStatus';
+import { getApiErrorMessage } from '@/lib/client-errors';
 
 type Status = 'PENDING' | 'FILLED' | 'CANNOT_FILL';
 interface Prescription {
@@ -35,7 +36,7 @@ export default function PatientPrescriptionsPage() {
     try {
       const response = await fetch('/api/patient/prescriptions');
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || 'Unable to load your prescriptions.');
+      if (!response.ok) throw new Error(getApiErrorMessage(payload, 'Unable to load your prescriptions.'));
       setData(payload);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Unable to load your prescriptions.');

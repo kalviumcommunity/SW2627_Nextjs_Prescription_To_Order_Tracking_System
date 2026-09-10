@@ -74,7 +74,10 @@ export function apiError(error: unknown, fallbackMessage = "An unexpected error 
     }
   }
 
-  console.error("Unhandled API error:", error);
+  console.error("Unhandled API error", {
+    name: error instanceof Error ? error.name : "UnknownError",
+    code: error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined,
+  });
   return NextResponse.json(
     { error: { code: "INTERNAL_SERVER_ERROR", message: fallbackMessage } },
     { status: 500 }

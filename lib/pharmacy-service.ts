@@ -137,7 +137,7 @@ export async function fulfillPrescription(userId: string, prescriptionId: string
     });
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return { error: "Prescription has already been fulfilled.", statusCode: 409 as const };
-    console.error("Error fulfilling prescription in transaction:", error);
+    console.error("Error fulfilling prescription in transaction");
     return { error: "An unexpected error occurred during fulfillment.", statusCode: 500 as const };
   }
 }

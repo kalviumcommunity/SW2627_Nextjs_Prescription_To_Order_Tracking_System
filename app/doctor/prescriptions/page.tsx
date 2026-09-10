@@ -8,6 +8,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { PrescriptionStatus } from '@/components/prescriptions/PrescriptionStatus';
+import { getApiErrorMessage } from '@/lib/client-errors';
 
 interface MedicineItem {
   id: string;
@@ -74,12 +75,11 @@ export default function DoctorPrescriptionsPage() {
       const res = await fetch('/api/doctor/prescriptions');
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || `Failed to fetch prescriptions (HTTP ${res.status})`);
+        throw new Error(getApiErrorMessage(errJson, `Failed to fetch prescriptions (HTTP ${res.status})`));
       }
       const json: PrescriptionsResponse = await res.json();
       setData(json);
     } catch (err) {
-      console.error('Error fetching doctor prescriptions:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
     } finally {
       setIsLoading(false);

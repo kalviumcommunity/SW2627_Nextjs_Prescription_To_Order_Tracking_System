@@ -13,6 +13,7 @@ import {
   PrescriptionDetails,
   PrescriptionData,
 } from '@/components/prescriptions/PrescriptionDetails';
+import { getApiErrorMessage } from '@/lib/client-errors';
 
 interface DoctorInfo {
   id: string;
@@ -69,12 +70,11 @@ export default function AdminPrescriptionsPage() {
       const res = await fetch('/api/admin/prescriptions', { cache: 'no-store' });
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || `Failed to fetch prescriptions (HTTP ${res.status})`);
+        throw new Error(getApiErrorMessage(errJson, `Failed to fetch prescriptions (HTTP ${res.status})`));
       }
       const json: PrescriptionsResponse = await res.json();
       setPrescriptions(json.prescriptions || []);
     } catch (err) {
-      console.error('Error fetching admin prescriptions:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
     } finally {
       setIsLoading(false);
@@ -97,7 +97,7 @@ export default function AdminPrescriptionsPage() {
       });
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || 'Failed to load prescription detail.');
+        throw new Error(getApiErrorMessage(errJson, 'Failed to load prescription detail.'));
       }
       const json = await res.json();
       const rx = json.prescription;
@@ -108,7 +108,6 @@ export default function AdminPrescriptionsPage() {
         medicines: medicines,
       });
     } catch (err) {
-      console.error('Error loading prescription detail:', err);
       setDetailError(err instanceof Error ? err.message : 'Failed to load detail projection.');
     } finally {
       setIsDetailLoading(false);

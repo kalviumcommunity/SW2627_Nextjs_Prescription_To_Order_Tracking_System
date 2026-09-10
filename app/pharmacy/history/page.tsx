@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { getApiErrorMessage } from '@/lib/client-errors';
 
 type Status = 'PENDING' | 'FILLED' | 'CANNOT_FILL';
 
@@ -67,7 +68,7 @@ export default function PharmacyHistoryPage() {
     try {
       const response = await fetch('/api/pharmacy/history', { cache: 'no-store' });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(typeof body.error === 'string' ? body.error : `Unable to load history (HTTP ${response.status})`);
+      if (!response.ok) throw new Error(getApiErrorMessage(body, `Unable to load history (HTTP ${response.status})`));
       setData(body);
       setHistory(normalizeHistory(body.history));
     } catch (reason) {

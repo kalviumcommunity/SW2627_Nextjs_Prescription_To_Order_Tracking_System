@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { getNavigationForRole } from "@/lib/navigation";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 export interface RoleDashboardShellProps {
   children: React.ReactNode;
@@ -18,8 +19,12 @@ export interface RoleDashboardShellProps {
  * The Logout action is appended dynamically to every role's sidebar.
  */
 export function RoleDashboardShell({ children }: RoleDashboardShellProps) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const pathname = usePathname();
+
+  if (status === "loading") {
+    return <LoadingState message="Verifying your access..." className="min-h-screen" />;
+  }
 
   const userRole = session?.user?.role as UserRole | undefined;
   const userName = session?.user?.name ?? undefined;
@@ -28,6 +33,10 @@ export function RoleDashboardShell({ children }: RoleDashboardShellProps) {
   const navItems = [
     ...getNavigationForRole(userRole),
   ];
+
+  if (!userRole || navItems.length === 0) {
+    return <LoadingState message="Redirecting to sign in..." className="min-h-screen" />;
+  }
 
   const handleLogout = () => {
     signOut({ callbackUrl: "/login" });

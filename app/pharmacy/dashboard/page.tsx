@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { getApiErrorMessage } from '@/lib/client-errors';
 import { PrescriptionStatus } from '@/components/prescriptions/PrescriptionStatus';
 
 type Status = 'PENDING' | 'FILLED' | 'CANNOT_FILL';
@@ -49,7 +50,7 @@ export default function PharmacyDashboardPage() {
       const response = await fetch('/api/pharmacy/dashboard', { cache: 'no-store' });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        throw new Error(body.error || `Unable to load dashboard (HTTP ${response.status})`);
+        throw new Error(getApiErrorMessage(body, `Unable to load dashboard (HTTP ${response.status})`));
       }
       setData(await response.json());
     } catch (reason) {

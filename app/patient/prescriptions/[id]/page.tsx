@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { getApiErrorMessage } from '@/lib/client-errors';
 
 export default function PatientPrescriptionDetailPage({ params }: { params: { id: string } }) {
   const [prescription, setPrescription] = useState<PrescriptionData | null>(null);
@@ -20,7 +21,7 @@ export default function PatientPrescriptionDetailPage({ params }: { params: { id
       const response = await fetch(`/api/patient/prescriptions/${params.id}`);
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(response.status === 404 ? 'Prescription not found.' : payload.error || 'Unable to load prescription details.');
+        throw new Error(response.status === 404 ? 'Prescription not found.' : getApiErrorMessage(payload, 'Unable to load prescription details.'));
       }
       setPrescription(payload.prescription);
     } catch (requestError) {
