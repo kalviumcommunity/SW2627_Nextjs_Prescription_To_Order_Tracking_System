@@ -176,8 +176,8 @@ class CloudStorageService implements StorageService {
           mimeType: file.mimeType,
           url: `https://storage.googleapis.com/${bucketName}/${documentRef}`,
         };
-      } catch (gcpErr) {
-        console.error("GCP Cloud Storage upload error:", gcpErr);
+      } catch {
+        console.error("GCP Cloud Storage upload error");
         throw new Error("Failed to upload document to cloud storage.");
       }
     } else {

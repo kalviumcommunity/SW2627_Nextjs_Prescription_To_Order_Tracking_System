@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { getApiErrorMessage } from '@/lib/client-errors';
 
 interface Patient {
   id: string;
@@ -38,12 +39,11 @@ export default function DoctorPatientsPage() {
       const res = await fetch('/api/doctor/patients');
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || `Failed to fetch patients (HTTP ${res.status})`);
+        throw new Error(getApiErrorMessage(errJson, `Failed to fetch patients (HTTP ${res.status})`));
       }
       const json: PatientsResponse = await res.json();
       setData(json);
     } catch (err) {
-      console.error('Error fetching doctor patient roster:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
     } finally {
       setIsLoading(false);

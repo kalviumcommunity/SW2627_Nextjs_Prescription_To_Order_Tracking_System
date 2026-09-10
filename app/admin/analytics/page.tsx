@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { getApiErrorMessage } from '@/lib/client-errors';
 
 interface DoctorActivityItem {
   doctorId: string;
@@ -76,12 +77,11 @@ export default function AdminAnalyticsPage() {
       const res = await fetch('/api/admin/analytics', { cache: 'no-store' });
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || `Failed to fetch analytics (HTTP ${res.status})`);
+        throw new Error(getApiErrorMessage(errJson, `Failed to fetch analytics (HTTP ${res.status})`));
       }
       const json: AnalyticsData = await res.json();
       setData(json);
     } catch (err) {
-      console.error('Error fetching admin analytics:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
     } finally {
       setIsLoading(false);

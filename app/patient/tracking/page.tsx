@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { getApiErrorMessage } from '@/lib/client-errors';
 import { PrescriptionStatus } from '@/components/prescriptions/PrescriptionStatus';
 
 type Status = 'PENDING' | 'FILLED' | 'CANNOT_FILL';
@@ -49,7 +50,7 @@ export default function PatientTrackingPage() {
     try {
       const response = await fetch('/api/patient/prescriptions');
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || 'Unable to load tracking information.');
+      if (!response.ok) throw new Error(getApiErrorMessage(payload, 'Unable to load tracking information.'));
       setData(payload);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Unable to load tracking information.');

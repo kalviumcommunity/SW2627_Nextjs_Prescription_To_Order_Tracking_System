@@ -11,6 +11,7 @@ import {
   PrescriptionData,
   PrescriptionDetails,
 } from '@/components/prescriptions/PrescriptionDetails';
+import { getApiErrorMessage } from '@/lib/client-errors';
 
 export default function DoctorPrescriptionDetailPage() {
   const params = useParams();
@@ -35,7 +36,7 @@ export default function DoctorPrescriptionDetailPage() {
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(payload.error || 'Unable to load prescription details.');
+        throw new Error(getApiErrorMessage(payload, 'Unable to load prescription details.'));
       }
 
       if (!payload.prescription) {
@@ -44,7 +45,6 @@ export default function DoctorPrescriptionDetailPage() {
 
       setPrescription(payload.prescription);
     } catch (err) {
-      console.error('Error loading prescription details:', err);
       setError(err instanceof Error ? err.message : 'Unable to load prescription details.');
       setPrescription(null);
     } finally {

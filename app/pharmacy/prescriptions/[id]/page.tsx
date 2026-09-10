@@ -8,6 +8,7 @@ import { Modal } from '@/components/ui/Modal';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { PrescriptionStatus } from '@/components/prescriptions/PrescriptionStatus';
+import { getApiErrorMessage } from '@/lib/client-errors';
 
 type Status = 'PENDING' | 'FILLED' | 'CANNOT_FILL';
 
@@ -46,10 +47,10 @@ export default function PharmacyPrescriptionDetailPage({ params }: { params: { i
       const response = await fetch(`/api/pharmacy/prescriptions/${params.id}`, { cache: 'no-store' });
       const body = await response.json().catch(() => ({}));
       if (response.status === 404) {
-        setError(body.error || 'Prescription not found.');
+        setError(getApiErrorMessage(body, 'Prescription not found.'));
         return;
       }
-      if (!response.ok) throw new Error(body.error || `Unable to load prescription (HTTP ${response.status})`);
+      if (!response.ok) throw new Error(getApiErrorMessage(body, `Unable to load prescription (HTTP ${response.status})`));
       setPrescription(body.prescription);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Unable to load prescription details.');
@@ -67,7 +68,7 @@ export default function PharmacyPrescriptionDetailPage({ params }: { params: { i
     try {
       const response = await fetch(`/api/pharmacy/prescriptions/${params.id}/fulfill`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: confirmAction, notes: notes.trim() || undefined }) });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(response.status === 409 ? 'This prescription has already been processed. Please refresh the status.' : body.error || `Fulfillment failed (HTTP ${response.status})`);
+      if (!response.ok) throw new Error(response.status === 409 ? 'This prescription has already been processed. Please refresh the status.' : getApiErrorMessage(body, `Fulfillment failed (HTTP ${response.status})`));
       if (body.prescription) setPrescription(body.prescription); else await loadPrescription();
       setSuccessMessage(`Prescription successfully marked as ${confirmAction === 'FILLED' ? 'Filled' : 'Cannot Fill'}.`);
       setConfirmAction(null);

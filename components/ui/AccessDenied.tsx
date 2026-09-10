@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { UserRole } from "@prisma/client";
 import { getDefaultDashboardPath } from "@/lib/navigation";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 export interface AccessDeniedProps {
   /** Optional message to display. Defaults to a generic access-denied message. */
@@ -12,7 +13,10 @@ export interface AccessDeniedProps {
 }
 
 export function AccessDenied({ message }: AccessDeniedProps) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  if (status === "loading") {
+    return <LoadingState message="Checking your permissions..." className="min-h-screen" />;
+  }
   const userRole = session?.user?.role as UserRole | undefined;
   const dashboardPath = getDefaultDashboardPath(userRole);
 

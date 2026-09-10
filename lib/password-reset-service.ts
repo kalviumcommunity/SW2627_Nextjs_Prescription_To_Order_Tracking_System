@@ -21,8 +21,9 @@ export interface PasswordResetEmailProvider {
  */
 export class DevelopmentEmailProvider implements PasswordResetEmailProvider {
   async sendPasswordResetEmail(email: string, resetToken: string): Promise<void> {
+    void resetToken;
     if (process.env.NODE_ENV === "development") {
-      console.log(`[DevelopmentEmailProvider] Password reset email simulated for: ${email} (token length: ${resetToken.length})`);
+      console.log(`[DevelopmentEmailProvider] Password reset email simulated for account ${email.replace(/(.{2}).+(@.*)/, '$1***$2')}`);
     }
   }
 }

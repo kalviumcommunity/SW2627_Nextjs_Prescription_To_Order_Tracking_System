@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { getApiErrorMessage } from '@/lib/client-errors';
 
 interface PharmacyData {
   id: string;
@@ -41,12 +42,11 @@ export default function AdminPharmacyPage() {
       const res = await fetch('/api/admin/pharmacy', { cache: 'no-store' });
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || `Failed to fetch pharmacy (HTTP ${res.status})`);
+        throw new Error(getApiErrorMessage(errJson, `Failed to fetch pharmacy (HTTP ${res.status})`));
       }
       const json: PharmacyResponse = await res.json();
       setData(json.pharmacy);
     } catch (err) {
-      console.error('Error fetching admin pharmacy:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
     } finally {
       setIsLoading(false);

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { getApiErrorMessage } from '@/lib/client-errors';
 
 interface DoctorItem {
   id: string;
@@ -39,12 +40,11 @@ export default function AdminDoctorsPage() {
       const res = await fetch('/api/admin/doctors', { cache: 'no-store' });
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || `Failed to fetch doctors (HTTP ${res.status})`);
+        throw new Error(getApiErrorMessage(errJson, `Failed to fetch doctors (HTTP ${res.status})`));
       }
       const json: DoctorsResponse = await res.json();
       setDoctors(json.doctors || []);
     } catch (err) {
-      console.error('Error fetching admin doctors:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
     } finally {
       setIsLoading(false);

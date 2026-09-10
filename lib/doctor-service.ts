@@ -555,8 +555,8 @@ export async function createDoctorPrescription(
       success: true,
       prescription: createdPrescription,
     };
-  } catch (dbError) {
-    console.error("Database transaction error during prescription creation:", dbError);
+  } catch {
+    console.error("Database transaction error during prescription creation");
     return {
       error: "Failed to create prescription due to database transaction failure.",
       statusCode: 500 as const,

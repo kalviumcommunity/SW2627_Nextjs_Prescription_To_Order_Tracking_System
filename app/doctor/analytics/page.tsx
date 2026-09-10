@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { getApiErrorMessage } from '@/lib/client-errors';
 
 interface AnalyticsData {
   doctor: {
@@ -80,12 +81,11 @@ export default function DoctorAnalyticsPage() {
       const res = await fetch('/api/doctor/analytics', { cache: 'no-store' });
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || `Failed to fetch analytics (HTTP ${res.status})`);
+        throw new Error(getApiErrorMessage(errJson, `Failed to fetch analytics (HTTP ${res.status})`));
       }
       const json: AnalyticsData = await res.json();
       setData(json);
     } catch (err: unknown) {
-      console.error('Error loading doctor analytics:', err);
       setError(err instanceof Error ? err.message : 'Failed to load clinical analytics.');
     } finally {
       setLoading(false);

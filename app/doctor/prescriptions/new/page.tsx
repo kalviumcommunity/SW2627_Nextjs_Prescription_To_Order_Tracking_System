@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { getApiErrorMessage } from '@/lib/client-errors';
 
 interface Patient {
   id: string;
@@ -65,13 +66,12 @@ export default function NewPrescriptionPage() {
         const response = await fetch('/api/doctor/roster');
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
-          throw new Error(payload.error || 'Unable to load patient roster.');
+          throw new Error(getApiErrorMessage(payload, 'Unable to load patient roster.'));
         }
 
         const data = await response.json();
         setPatients(data.patients ?? []);
       } catch (error) {
-        console.error('Error loading roster:', error);
         setSubmitMessage({
           type: 'error',
           text: error instanceof Error ? error.message : 'Unable to load the patient roster.',
@@ -86,13 +86,12 @@ export default function NewPrescriptionPage() {
         const response = await fetch('/api/doctor/medicines');
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
-          throw new Error(payload.error || 'Unable to load medicine catalog.');
+          throw new Error(getApiErrorMessage(payload, 'Unable to load medicine catalog.'));
         }
 
         const data = await response.json();
         setMedicines(data.medicines ?? []);
       } catch (error) {
-        console.error('Error loading medicines:', error);
         setSubmitMessage({
           type: 'error',
           text: error instanceof Error ? error.message : 'Unable to load the medicine catalog.',
