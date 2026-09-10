@@ -403,9 +403,35 @@ export async function createDoctorPrescription(
     return { error: "Clinical diagnosis is required.", statusCode: 400 as const };
   }
 
+  if (diagnosis.trim().length > 2000) {
+    return { error: "Diagnosis must not exceed 2000 characters.", statusCode: 400 as const };
+  }
+
+  if (documentRef && typeof documentRef === "string") {
+    const trimmedDoc = documentRef.trim();
+    if (
+      trimmedDoc.includes("..") ||
+      trimmedDoc.includes("\0") ||
+      trimmedDoc.startsWith("/") ||
+      trimmedDoc.startsWith("\\")
+    ) {
+      return {
+        error: "Invalid document reference. Path traversal sequences are not allowed.",
+        statusCode: 400 as const,
+      };
+    }
+  }
+
   if (!Array.isArray(medicines) || medicines.length === 0) {
     return {
       error: "At least one medication is required in the prescription.",
+      statusCode: 400 as const,
+    };
+  }
+
+  if (medicines.length > 50) {
+    return {
+      error: "Maximum limit of 50 medications per prescription exceeded.",
       statusCode: 400 as const,
     };
   }
@@ -445,6 +471,13 @@ export async function createDoctorPrescription(
     if (!item.duration || typeof item.duration !== "string" || !item.duration.trim()) {
       return {
         error: `Medication at index ${i} is missing duration.`,
+        statusCode: 400 as const,
+      };
+    }
+
+    if (item.dosage.trim().length > 100 || item.frequency.trim().length > 100 || item.duration.trim().length > 100) {
+      return {
+        error: `Medication details at index ${i} exceed maximum character limits (100 chars).`,
         statusCode: 400 as const,
       };
     }
