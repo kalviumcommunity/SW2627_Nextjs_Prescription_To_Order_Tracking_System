@@ -4,29 +4,53 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
 
 jobs:
-  build-and-lint:
+  ci:
+    name: Build, Lint, Typecheck, Test & Verify
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: medeasy_ci
+          POSTGRES_PASSWORD: medeasy_ci_password
+          POSTGRES_DB: medeasy_ci_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: "postgresql://medeasy_ci:medeasy_ci_password@localhost:5432/medeasy_ci_test?schema=public"
+      NEXT_TELEMETRY_DISABLED: 1
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'ci-synthetic-build-secret-key-at-least-32-chars-long' }}
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install dependencies (npm ci)
         run: |
           sed -i 's/\r$//' node_modules/.bin/* 2>/dev/null || true
           chmod -R +x node_modules/.bin || true
-          npm install
+          npm ci
           sed -i 's/\r$//' node_modules/.bin/* 2>/dev/null || true
           chmod -R +x node_modules/.bin || true
-        env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/medeasy?schema=public"
 
       - name: Generate Prisma Client
         run: |
@@ -35,13 +59,34 @@ jobs:
             echo "::error title=Prisma Generate Failed::$ERR"
             exit 1
           }
-        env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/medeasy?schema=public"
 
-      - name: Run lint
+      - name: Apply database migrations
+        run: npx prisma migrate deploy
+
+      - name: Seed database with test fixtures
+        run: npm run db:seed
+
+      - name: Run ESLint
         run: npm run lint
 
-      - name: Build project
+      - name: Run TypeScript type check
+        run: npx tsc --noEmit
+
+      - name: Run integration and regression tests
+        run: |
+          npm run test:api-errors
+          npm run test:admin:frontend
+          npm run test:day16-ui
+          npm run test:auth
+          npm run test:authz
+          npm run test:doctor
+          npm run test:pharmacy
+          npm run test:patient
+          npm run test:admin
+          npm run test:day16-regression
+          npm run test:day17-security
+
+      - name: Run production build
         run: |
           npm run build 2>&1 | tee next-build.log || {
             ERR=$(tail -n 25 next-build.log)
@@ -49,6 +94,4 @@ jobs:
             exit 1
           }
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/medeasy?schema=public"
-          NEXTAUTH_SECRET: "ci-secret-build-key-at-least-32-chars-long"
-          NEXTAUTH_URL: "http://localhost:3000"
+          NODE_ENV: production
