@@ -8,6 +8,7 @@ import { getDefaultDashboardPath } from "@/lib/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { getApiErrorMessage } from "@/lib/client-errors";
 
 
 type AuthMode = "login" | "doctor" | "patient";
@@ -97,10 +98,10 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         age: mode === "patient" ? Number(values.age) : undefined,
       }),
     });
-    const result = await response.json();
+    const result = await response.json().catch(() => ({}));
     if (!response.ok) {
       setStatus("error");
-      setMessage(result.error || "Registration could not be completed.");
+      setMessage(getApiErrorMessage(result, "Registration could not be completed."));
     } else {
       setStatus("success");
       setMessage("Your account is ready. You can sign in now.");

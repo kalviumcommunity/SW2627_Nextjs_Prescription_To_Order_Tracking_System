@@ -271,3 +271,4 @@ npm run lint     # Run ESLint checks
 6. Request a review from team members before merging.
 
 For detailed Docker operations and troubleshooting, see [docs/DOCKER.md](docs/DOCKER.md).
+For Google Cloud Run production deployment, see [docs/deployment/cloud-run.md](docs/deployment/cloud-run.md).
