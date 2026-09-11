@@ -1,8 +1,11 @@
 services:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # PostgreSQL database (persists data in named volume postgres_data)
+  # ─────────────────────────────────────────────────────────────────────────────
   db:
     image: postgres:15-alpine
     container_name: medeasy_db
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-medeasy_dev}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medeasy_password}
@@ -17,5 +20,39 @@ services:
       timeout: 5s
       retries: 5
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Next.js application (local dev mode with hot-reload via volume mount)
+  # Requires a .env file at the project root (copy from .env.example).
+  # ─────────────────────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    container_name: medeasy_app
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Override DATABASE_URL so the app reaches the db container by hostname
+      DATABASE_URL: postgresql://${POSTGRES_USER:-medeasy_dev}:${POSTGRES_PASSWORD:-medeasy_password}@db:5432/${POSTGRES_DB:-medeasy_db}?schema=public
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount source code for hot-reload; keep node_modules from the container
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      db:
+        condition: service_healthy
+    command: npm run dev
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Named volumes — data survives `docker compose down`.
+# Use `docker compose down -v` ONLY to intentionally wipe the database.
+# ─────────────────────────────────────────────────────────────────────────────
 volumes:
   postgres_data:
