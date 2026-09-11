@@ -21,8 +21,13 @@ FROM base AS deps
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
 
-# Install all dependencies (including devDependencies required for compilation)
-RUN npm ci
+# Configure npm network resilience and install dependencies
+RUN --mount=type=cache,target=/root/.npm \
+    npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm ci && \
+    npx prisma generate
 
 # ==============================================================================
 # Stage 2: Builder (builder)
@@ -96,16 +101,11 @@ CMD ["node", "server.js"]
 #
 # Usage: docker compose up   (the compose file selects --target dev)
 # ==============================================================================
-FROM base AS dev
+FROM deps AS dev
 WORKDIR /app
 
 ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
-
-# Install ALL dependencies (including devDependencies for tsx, prisma CLI, etc.)
-COPY package.json package-lock.json ./
-COPY prisma ./prisma
-RUN npm ci && npx prisma generate
 
 EXPOSE 3000
 CMD ["npm", "run", "dev"]
