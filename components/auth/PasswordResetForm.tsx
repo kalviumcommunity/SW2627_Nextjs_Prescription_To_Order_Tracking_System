@@ -5,6 +5,7 @@ import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { getApiErrorMessage } from "@/lib/client-errors";
 
 export function PasswordResetForm({ mode }: { mode: "request" | "reset" }) {
   const [email, setEmail] = useState("");
@@ -31,9 +32,9 @@ export function PasswordResetForm({ mode }: { mode: "request" | "reset" }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: email.trim().toLowerCase() }),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          setError(data.error || "Failed to process password reset request.");
+          setError(getApiErrorMessage(data, "Failed to process password reset request."));
         } else {
           setSuccess(true);
           setSuccessMessage(data.message || "If an account exists with this email, password reset instructions have been sent.");
@@ -67,9 +68,9 @@ export function PasswordResetForm({ mode }: { mode: "request" | "reset" }) {
             password,
           }),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          setError(data.error || "Failed to reset password. Please verify your reset code.");
+          setError(getApiErrorMessage(data, "Failed to reset password. Please verify your reset code."));
         } else {
           setSuccess(true);
           setSuccessMessage(data.message || "Your password has been reset successfully. You can now sign in.");

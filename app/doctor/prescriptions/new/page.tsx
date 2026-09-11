@@ -244,15 +244,7 @@ export default function NewPrescriptionPage() {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          throw new Error(data.error || 'You are not authorized to create prescriptions.');
-        }
-
-        if (response.status >= 400 && response.status < 500) {
-          throw new Error(data.error || 'The prescription could not be created because the request is invalid.');
-        }
-
-        throw new Error(data.error || 'The server encountered an issue while creating the prescription.');
+        throw new Error(getApiErrorMessage(data, 'The prescription could not be created.'));
       }
 
       setSubmitMessage({

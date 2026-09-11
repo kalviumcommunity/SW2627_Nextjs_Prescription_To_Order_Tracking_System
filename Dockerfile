@@ -64,7 +64,7 @@ RUN apt-get update && \
 # Configure production runtime environment
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
+ENV PORT=8080
 ENV HOSTNAME="0.0.0.0"
 
 # Create dedicated non-root user and group for security
@@ -88,8 +88,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 # Switch to non-root user
 USER nextjs
 
-# Expose Next.js server port
-EXPOSE 3000
+# Expose Next.js server port (Cloud Run standard)
+EXPOSE 8080
 
 # Start Next.js standalone production server
 CMD ["node", "server.js"]
