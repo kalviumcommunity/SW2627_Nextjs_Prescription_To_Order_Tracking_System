@@ -88,3 +88,24 @@ EXPOSE 3000
 
 # Start Next.js standalone production server
 CMD ["node", "server.js"]
+
+# ==============================================================================
+# Stage 4: Dev (local development via docker compose)
+# Source code is bind-mounted by docker-compose.yml — this stage only sets up
+# the runtime environment. Hot-reload works because of the volume mount.
+#
+# Usage: docker compose up   (the compose file selects --target dev)
+# ==============================================================================
+FROM base AS dev
+WORKDIR /app
+
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Install ALL dependencies (including devDependencies for tsx, prisma CLI, etc.)
+COPY package.json package-lock.json ./
+COPY prisma ./prisma
+RUN npm ci && npx prisma generate
+
+EXPOSE 3000
+CMD ["npm", "run", "dev"]
