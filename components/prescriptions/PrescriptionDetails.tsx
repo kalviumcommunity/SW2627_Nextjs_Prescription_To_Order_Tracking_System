@@ -106,11 +106,6 @@ export function PrescriptionDetails({
     (prescription.doctor?.user?.email ? prescription.doctor.user.email.split('@')[0] : 'Doctor');
 
   const documentReference = prescription.documentRef?.trim();
-  const documentHref = documentReference
-    ? documentReference.startsWith('http://') || documentReference.startsWith('https://')
-      ? documentReference
-      : undefined
-    : undefined;
 
   const content = (
     <div className="space-y-6">
@@ -229,18 +224,27 @@ export function PrescriptionDetails({
           Prescription Document
         </p>
         {documentReference ? (
-          documentHref ? (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium font-mono text-gray-900 break-all">{documentReference}</p>
+            </div>
             <a
-              href={documentHref}
+              href={`/api/prescriptions/${prescription.id}/document`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex text-sm font-medium text-blue-700 underline underline-offset-2"
+              className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-colors border border-blue-200 shrink-0"
             >
-              {documentReference}
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+              View Document
             </a>
-          ) : (
-            <p className="text-sm font-medium text-gray-900">{documentReference}</p>
-          )
+          </div>
         ) : (
           <p className="text-sm text-gray-500">No document reference attached to this prescription.</p>
         )}

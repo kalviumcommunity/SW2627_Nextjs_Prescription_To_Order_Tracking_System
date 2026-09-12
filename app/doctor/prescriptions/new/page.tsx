@@ -60,6 +60,87 @@ export default function NewPrescriptionPage() {
   const [validationErrors, setValidationErrors] = useState<FormErrors>({});
   const [rowErrors, setRowErrors] = useState<Record<string, RowValidationErrors>>({});
 
+  // Prescription document upload state
+  const [uploadedDoc, setUploadedDoc] = useState<{
+    documentRef: string;
+    fileName: string;
+    size: number;
+    mimeType: string;
+  } | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [uploadDocError, setUploadDocError] = useState<string | null>(null);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadDocError(null);
+
+    // Client-side validations
+    if (file.size === 0) {
+      setUploadDocError('File cannot be empty.');
+      event.target.value = '';
+      return;
+    }
+
+    const maxSizeBytes = 5 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      setUploadDocError('File size exceeds the allowed limit of 5MB.');
+      event.target.value = '';
+      return;
+    }
+
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
+    const fileExt = file.name ? file.name.slice(file.name.lastIndexOf('.')).toLowerCase() : '';
+
+    if (
+      (file.type && !allowedTypes.includes(file.type.toLowerCase())) ||
+      (fileExt && !allowedExtensions.includes(fileExt))
+    ) {
+      setUploadDocError('Invalid file type. Allowed formats: PDF, JPEG, PNG, WEBP.');
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      setUploadingDoc(true);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/doctor/prescriptions/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(data, `Upload failed with status ${response.status}.`));
+      }
+
+      setUploadedDoc({
+        documentRef: data.documentRef,
+        fileName: data.fileName || file.name,
+        size: data.size || file.size,
+        mimeType: data.mimeType || file.type,
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Unable to upload document. Please check your connection and retry.';
+      setUploadDocError(message);
+    } finally {
+      setUploadingDoc(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleRemoveDoc = () => {
+    setUploadedDoc(null);
+    setUploadDocError(null);
+  };
+
   useEffect(() => {
     const fetchRoster = async () => {
       try {
@@ -223,7 +304,7 @@ export default function NewPrescriptionPage() {
     const payload = {
       patientId,
       diagnosis: diagnosis.trim(),
-      documentRef: null,
+      documentRef: uploadedDoc ? uploadedDoc.documentRef : null,
       date: prescriptionDate,
       medicines: rows.map((row) => ({
         medicineId: row.medicineId,
@@ -462,12 +543,93 @@ export default function NewPrescriptionPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>5. Prescription Document</CardTitle>
+            <CardTitle>5. Prescription Document (Optional)</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
-              Document attachment support is not enabled in the current storage abstraction. This field is reserved for a future PDF/document reference.
-            </div>
+          <CardContent className="space-y-3">
+            {!uploadedDoc ? (
+              <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50/70 p-6 text-center transition hover:border-blue-400">
+                <input
+                  type="file"
+                  id="prescription-file-upload"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+                  onChange={handleFileUpload}
+                  disabled={uploadingDoc}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="prescription-file-upload"
+                  className="flex cursor-pointer flex-col items-center justify-center gap-2"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                    {uploadingDoc ? (
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                    ) : (
+                      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-sm font-semibold text-blue-600 hover:text-blue-700">
+                      {uploadingDoc ? 'Uploading document to cloud storage...' : 'Click to select or drag & drop'}
+                    </span>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Supports PDF, PNG, JPG, or WEBP (Max 5MB). Encrypted &amp; private in cloud storage.
+                    </p>
+                  </div>
+                </label>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-green-200 bg-green-50/60 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-700">
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{uploadedDoc.fileName}</p>
+                      <p className="text-xs text-gray-500">
+                        {Math.round(uploadedDoc.size / 1024)} KB •{' '}
+                        <span className="font-mono text-gray-600">{uploadedDoc.documentRef}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleRemoveDoc}
+                      className="text-xs text-red-600 hover:text-red-700"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {uploadDocError && (
+              <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <div className="flex items-center justify-between">
+                  <span>{uploadDocError}</span>
+                  <button
+                    type="button"
+                    onClick={() => setUploadDocError(null)}
+                    className="ml-3 text-xs font-semibold text-red-600 hover:text-red-800"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
