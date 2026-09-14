@@ -7,6 +7,7 @@
     "build": "node node_modules/prisma/build/index.js generate && next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "tsx -r dotenv/config scripts/test-day17-backend-security.ts",
     "test:auth": "tsx -r dotenv/config scripts/test-auth.ts",
     "test:authz": "tsx -r dotenv/config scripts/test-authorization.ts",
     "test:api-errors": "tsx scripts/test-api-errors.ts",
