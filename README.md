@@ -272,3 +272,4 @@ npm run lint     # Run ESLint checks
 
 For detailed Docker operations and troubleshooting, see [docs/DOCKER.md](docs/DOCKER.md).
 For Google Cloud Run production deployment, see [docs/deployment/cloud-run.md](docs/deployment/cloud-run.md).
+For Render deployment, see [docs/deployment/render.md](docs/deployment/render.md).
