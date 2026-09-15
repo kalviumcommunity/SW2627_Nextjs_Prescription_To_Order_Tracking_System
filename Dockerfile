@@ -30,6 +30,22 @@ RUN --mount=type=cache,target=/root/.npm \
     npx prisma generate
 
 # ==============================================================================
+# Stage Dev (local development via docker compose)
+# Source code is bind-mounted by docker-compose.yml — this stage only sets up
+# the runtime environment. Hot-reload works because of the volume mount.
+#
+# Usage: docker compose up   (the compose file selects --target dev)
+# ==============================================================================
+FROM deps AS dev
+WORKDIR /app
+
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+
+EXPOSE 3000
+CMD ["npm", "run", "dev"]
+
+# ==============================================================================
 # Stage 2: Builder (builder)
 # Generate Prisma Client and compile Next.js standalone application
 # ==============================================================================
@@ -95,18 +111,3 @@ EXPOSE 8080
 # Start Next.js standalone production server
 CMD ["node", "server.js"]
 
-# ==============================================================================
-# Stage 4: Dev (local development via docker compose)
-# Source code is bind-mounted by docker-compose.yml — this stage only sets up
-# the runtime environment. Hot-reload works because of the volume mount.
-#
-# Usage: docker compose up   (the compose file selects --target dev)
-# ==============================================================================
-FROM deps AS dev
-WORKDIR /app
-
-ENV NODE_ENV=development
-ENV NEXT_TELEMETRY_DISABLED=1
-
-EXPOSE 3000
-CMD ["npm", "run", "dev"]
