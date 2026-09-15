@@ -45,12 +45,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies (npm ci)
-        run: |
-          sed -i 's/\r$//' node_modules/.bin/* 2>/dev/null || true
-          chmod -R +x node_modules/.bin || true
-          npm ci
-          sed -i 's/\r$//' node_modules/.bin/* 2>/dev/null || true
-          chmod -R +x node_modules/.bin || true
+        run: npm ci
 
       - name: Generate Prisma Client
         run: |
